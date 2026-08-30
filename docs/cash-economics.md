@@ -7,8 +7,16 @@ Cash Economics는 Profitable Growth의 고정된 8개 Core 중 하나다.
 3개년 누적 현금흐름을 사용한다.
 
 ```text
-cash conversion = cumulative CFO / cumulative net income
+cash conversion = cumulative consolidated CFO / cumulative consolidated net income
 ```
+
+Cash Economics는 연결 영업현금흐름과 연결 순이익을 비교한다. 지배기업 보통주주
+귀속 순이익(`net_income_common`)은 회계 범위가 다르므로 CFO conversion에 사용하지
+않고 shareholder-level supporting data로만 보존한다.
+
+Cash Economics compares consolidated operating cash flow with consolidated net income.
+Common-shareholder attributable net income is not used for CFO conversion because the
+accounting scopes would differ.
 
 | Cash conversion | Grade |
 |---:|---|

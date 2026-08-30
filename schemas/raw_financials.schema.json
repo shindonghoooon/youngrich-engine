@@ -15,7 +15,7 @@
         "type": "object",
         "required": [
           "fiscal_year", "fiscal_period_end", "revenue", "operating_income", "pretax_income",
-          "income_tax_expense", "net_income", "cfo", "capex", "cash", "total_debt",
+          "income_tax_expense", "net_income_consolidated", "cfo", "capex", "cash", "total_debt",
           "total_equity", "diluted_shares", "diluted_eps", "sources"
         ],
         "properties": {
@@ -25,7 +25,8 @@
           "operating_income": {"type": "number"},
           "pretax_income": {"type": "number"},
           "income_tax_expense": {"type": "number"},
-          "net_income": {"type": "number"},
+          "net_income_consolidated": {"type": "number"},
+          "net_income_common": {"type": ["number", "null"]},
           "cfo": {"type": "number"},
           "capex": {"type": "number", "minimum": 0},
           "cash": {"type": "number", "minimum": 0},

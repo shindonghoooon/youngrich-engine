@@ -68,7 +68,7 @@ def operating_margin_change_3y(history: FinancialHistory) -> float:
 
 def cumulative_cfo_to_net_income_3y(history: FinancialHistory) -> float:
     periods = trailing_periods(history, 3)
-    net_income = sum(period.net_income for period in periods)
+    net_income = sum(period.net_income_consolidated for period in periods)
     if net_income <= 0:
         raise ValueError("cumulative net income must be positive")
     return sum(period.cfo for period in periods) / net_income

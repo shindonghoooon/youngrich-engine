@@ -25,7 +25,8 @@ class RawFinancialPeriod(BaseModel):
     operating_income: float
     pretax_income: float
     income_tax_expense: float
-    net_income: float
+    net_income_consolidated: float
+    net_income_common: float | None = None
     cfo: float
     capex: float = Field(ge=0)
     cash: float = Field(ge=0)
@@ -61,7 +62,8 @@ class FinancialPeriod(BaseModel):
     operating_income: float
     pretax_income: float
     income_tax_expense: float
-    net_income: float
+    net_income_consolidated: float
+    net_income_common: float | None = None
     cfo: float
     capex: float
     cash: float
@@ -97,7 +99,8 @@ def normalize_financial_history(raw: RawFinancialHistory) -> FinancialHistory:
         "operating_income",
         "pretax_income",
         "income_tax_expense",
-        "net_income",
+        "net_income_consolidated",
+        "net_income_common",
         "cfo",
         "capex",
         "cash",

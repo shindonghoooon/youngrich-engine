@@ -29,6 +29,8 @@ Raw Data
 - 성장률과 margin 변화: FY2022에서 FY2025까지 3년
 - CAGR 기간 수: 4개 연간 observation 사이의 3개 interval
 - 누적 Cash Economics: 최근 3개 기간(FY2023-FY2025)
+- CFO conversion 순이익: `net_income_consolidated`만 사용
+- `net_income_common`: shareholder-level supporting data로만 보존
 - CAPEX: 현금 유출의 절댓값을 양수로 저장
 - Net Debt / EBITDA: 최신 연말 cash, total debt와 공식 발표 EBITDA 사용
 - 2022 net income과 diluted EPS: continuing operations 기준

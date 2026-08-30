@@ -2,6 +2,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from engine.case1_snapshot import WEIGHTS, build_case1_snapshot
 from engine.cases.profitable_growth import reinvestment_intensity
@@ -19,7 +20,12 @@ from engine.financial_metrics import (
     revenue_cagr_3y,
     roic_for_period,
 )
-from engine.financials import FinancialPeriod, SourceMetadata, load_financial_history
+from engine.financials import (
+    FinancialHistory,
+    FinancialPeriod,
+    SourceMetadata,
+    load_financial_history,
+)
 from engine.models import CapitalModel, Grade
 
 
@@ -28,22 +34,27 @@ FIXTURE = Path(__file__).parents[1] / "data" / "raw" / "STRL.json"
 
 def make_period(
     *,
+    fiscal_year: int = 2025,
     operating_income: float = 100,
     pretax_income: float = 100,
     income_tax_expense: float = 20,
     total_debt: float = 0,
     total_equity: float = 400,
     cash: float = 0,
+    cfo: float = 1,
+    net_income_consolidated: float = 1,
+    net_income_common: float | None = None,
 ) -> FinancialPeriod:
     return FinancialPeriod(
-        fiscal_year=2025,
-        fiscal_period_end=date(2025, 12, 31),
+        fiscal_year=fiscal_year,
+        fiscal_period_end=date(fiscal_year, 12, 31),
         revenue=1,
         operating_income=operating_income,
         pretax_income=pretax_income,
         income_tax_expense=income_tax_expense,
-        net_income=1,
-        cfo=1,
+        net_income_consolidated=net_income_consolidated,
+        net_income_common=net_income_common,
+        cfo=cfo,
         capex=0,
         cash=cash,
         total_debt=total_debt,
@@ -78,6 +89,14 @@ def test_normalization_sorts_years_and_scales_currency(strl_history):
     assert strl_history.periods[-1].revenue == 2_490_049_000
 
 
+def test_financial_period_requires_consolidated_net_income():
+    data = make_period().model_dump()
+    data.pop("net_income_consolidated")
+    with pytest.raises(ValidationError):
+        FinancialPeriod.model_validate(data)
+    assert make_period().net_income_common is None
+
+
 def test_three_year_cagrs(strl_history):
     assert revenue_cagr_3y(strl_history) == pytest.approx(0.1206182169)
     assert operating_income_cagr_3y(strl_history) == pytest.approx(0.3642367102)
@@ -87,13 +106,33 @@ def test_three_year_cagrs(strl_history):
 
 def test_margin_and_cash_economics(strl_history):
     assert operating_margin_change_3y(strl_history) == pytest.approx(7.2664442312)
-    assert cumulative_cfo_to_net_income_3y(strl_history) == pytest.approx(2.0628587332)
+    assert cumulative_cfo_to_net_income_3y(strl_history) == pytest.approx(1.9567373612)
     capex_ratio = cumulative_capex_to_cfo_3y(strl_history)
     assert capex_ratio == pytest.approx(0.1572711553)
     assert reinvestment_intensity(
         sum(period.capex for period in strl_history.periods[-3:]),
         sum(period.cfo for period in strl_history.periods[-3:]),
     ) == "low"
+
+
+def test_cfo_conversion_uses_consolidated_net_income_scope():
+    periods = [
+        make_period(
+            fiscal_year=year,
+            cfo=cfo,
+            net_income_consolidated=100,
+            net_income_common=80,
+        )
+        for year, cfo in [(2023, 120), (2024, 130), (2025, 150)]
+    ]
+    history = FinancialHistory(
+        ticker="TEST",
+        company_name="Test Company",
+        currency="USD",
+        periods=periods,
+    )
+    assert cumulative_cfo_to_net_income_3y(history) == pytest.approx(400 / 300)
+    assert cumulative_cfo_to_net_income_3y(history) != pytest.approx(400 / 240)
 
 
 def test_latest_net_debt_to_ebitda(strl_history):
@@ -165,5 +204,10 @@ def test_strl_fixture_reproduces_quant_snapshot(strl_history):
     )
     assert capital_efficiency.value == pytest.approx(0.4135144386)
     assert capital_efficiency.trend.value == "accelerating"
+    cash_economics = next(
+        metric for metric in snapshot.metrics if metric.name == "cash_economics"
+    )
+    assert cash_economics.value == pytest.approx(1.9567373612)
+    assert cash_economics.grade == Grade.A
     assert snapshot.quant_score == pytest.approx(3.65)
     assert snapshot.quant_grade == Grade.A

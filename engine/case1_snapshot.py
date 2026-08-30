@@ -106,7 +106,7 @@ def build_case1_snapshot(
             unit="cfo_to_net_income",
             grade=grade_cash_conversion(
                 sum(period.cfo for period in history.periods[-3:]),
-                sum(period.net_income for period in history.periods[-3:]),
+                sum(period.net_income_consolidated for period in history.periods[-3:]),
             ),
             weight=WEIGHTS["cash_economics"],
             supporting_tag=reinvestment_intensity(
