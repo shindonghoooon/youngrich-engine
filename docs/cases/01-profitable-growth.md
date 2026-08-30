@@ -94,6 +94,10 @@ FCF가 낮다는 사실만으로 quality를 낮게 평가하지 않는다.
 - weak conversion
 - cash drain
 
+v1 grade는 3Y cumulative CFO / 3Y cumulative Net Income만으로 판정한다.
+CAPEX / CFO는 `reinvestment intensity` 태그로 저장하며 grade를 직접 변경하지 않는다.
+세부 cutoff와 예외 처리는 [Cash Economics v1](../cash-economics.md)을 따른다.
+
 예:
 Oracle처럼 CFO는 강하지만 대규모 AI/cloud CAPEX로 FCF가 음수인 경우
 현금창출 실패와 재투자를 구분해야 한다.

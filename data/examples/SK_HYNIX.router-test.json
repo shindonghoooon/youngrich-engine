@@ -1,0 +1,10 @@
+{
+  "ticker": "000660.KS",
+  "company_name": "SK hynix",
+  "router_input": {
+    "profitable": true,
+    "structurally_cyclical": true
+  },
+  "expected_case": "cyclical",
+  "note": "Case Router must run before the Profitable Growth Quant engine."
+}

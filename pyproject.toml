@@ -12,5 +12,10 @@ dependencies = [
   "streamlit>=1.40",
 ]
 
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+]
+
 [tool.setuptools.packages.find]
 include = ["app*", "engine*"]

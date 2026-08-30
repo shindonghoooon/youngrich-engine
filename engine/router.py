@@ -29,7 +29,10 @@ def route_case(x: RouterInput) -> CaseType:
         return CaseType.LOSS_MAKING_GROWTH
     if x.mature_slow_growth:
         return CaseType.LARGECAP_VALUE
-    if x.high_roic_long_duration and not x.profitable:
+    # TODO: Calibrate the boundary with Profitable Growth using a broader
+    # sample. Until then, a confirmed long-duration, high-ROIC thesis routes
+    # here regardless of current profitability.
+    if x.high_roic_long_duration:
         return CaseType.QUALITY_COMPOUNDER
     if x.profitable:
         return CaseType.PROFITABLE_GROWTH

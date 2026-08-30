@@ -71,7 +71,9 @@ streamlit run dashboard/app.py
 - [x] Capital Model concept
 - [x] Structured analysis schema
 - [ ] Case 1 scoring calibration
-- [ ] Router v1
+- [x] Router precedence smoke test
+- [x] Cash Economics v1
+- [ ] Router v1 calibration
 - [ ] Valuation engine
 - [ ] Narrative evaluation format
 - [ ] Case 2–6 engines
