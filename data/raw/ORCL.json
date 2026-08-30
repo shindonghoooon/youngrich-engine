@@ -1,0 +1,118 @@
+{
+  "ticker": "ORCL",
+  "company_name": "Oracle Corporation",
+  "currency": "USD",
+  "unit_scale": "millions",
+  "periods": [
+    {
+      "fiscal_year": 2026,
+      "fiscal_period_end": "2026-05-31",
+      "revenue": 67357,
+      "operating_income": 20606,
+      "pretax_income": 19554,
+      "income_tax_expense": 2467,
+      "net_income_consolidated": 17087,
+      "net_income_common": 16984,
+      "cfo": 31977,
+      "capex": 55663,
+      "cash": 31289,
+      "total_debt": 129541,
+      "total_equity": 43056,
+      "diluted_shares": 2914,
+      "diluted_eps": 5.83,
+      "supplied_ebitda": 29900,
+      "sources": [
+        {
+          "type": "sec_10k",
+          "reference": "https://www.sec.gov/Archives/edgar/data/1341439/000119312526277521/orcl-20260531.htm",
+          "filing_date": "2026-06-22",
+          "retrieved_at": "2026-08-31T00:00:00+09:00"
+        }
+      ]
+    },
+    {
+      "fiscal_year": 2023,
+      "fiscal_period_end": "2023-05-31",
+      "revenue": 49954,
+      "operating_income": 13093,
+      "pretax_income": 9126,
+      "income_tax_expense": 623,
+      "net_income_consolidated": 8503,
+      "net_income_common": null,
+      "cfo": 17165,
+      "capex": 8695,
+      "cash": 9765,
+      "total_debt": 90481,
+      "total_equity": 1556,
+      "diluted_shares": 2766,
+      "diluted_eps": 3.07,
+      "supplied_ebitda": null,
+      "sources": [
+        {
+          "type": "sec_10k",
+          "reference": "https://www.sec.gov/Archives/edgar/data/1341439/000095017023028914/orcl-20230531.htm",
+          "filing_date": "2023-06-20",
+          "retrieved_at": "2026-08-31T00:00:00+09:00"
+        }
+      ]
+    },
+    {
+      "fiscal_year": 2025,
+      "fiscal_period_end": "2025-05-31",
+      "revenue": 57399,
+      "operating_income": 17678,
+      "pretax_income": 14160,
+      "income_tax_expense": 1717,
+      "net_income_consolidated": 12443,
+      "net_income_common": 12443,
+      "cfo": 20821,
+      "capex": 21215,
+      "cash": 10786,
+      "total_debt": 92568,
+      "total_equity": 20969,
+      "diluted_shares": 2866,
+      "diluted_eps": 4.34,
+      "supplied_ebitda": null,
+      "sources": [
+        {
+          "type": "sec_10k",
+          "reference": "https://www.sec.gov/Archives/edgar/data/1341439/000119312526277521/orcl-20260531.htm",
+          "filing_date": "2026-06-22",
+          "retrieved_at": "2026-08-31T00:00:00+09:00"
+        }
+      ]
+    },
+    {
+      "fiscal_year": 2024,
+      "fiscal_period_end": "2024-05-31",
+      "revenue": 52961,
+      "operating_income": 15353,
+      "pretax_income": 11741,
+      "income_tax_expense": 1274,
+      "net_income_consolidated": 10467,
+      "net_income_common": 10467,
+      "cfo": 18673,
+      "capex": 6866,
+      "cash": 10454,
+      "total_debt": 86869,
+      "total_equity": 9239,
+      "diluted_shares": 2823,
+      "diluted_eps": 3.71,
+      "supplied_ebitda": null,
+      "sources": [
+        {
+          "type": "sec_10k",
+          "reference": "https://www.sec.gov/Archives/edgar/data/1341439/000095017025087926/orcl-20250531.htm",
+          "filing_date": "2025-06-18",
+          "retrieved_at": "2026-08-31T00:00:00+09:00"
+        },
+        {
+          "type": "sec_10k",
+          "reference": "https://www.sec.gov/Archives/edgar/data/1341439/000119312526277521/orcl-20260531.htm",
+          "filing_date": "2026-06-22",
+          "retrieved_at": "2026-08-31T00:00:00+09:00"
+        }
+      ]
+    }
+  ]
+}
