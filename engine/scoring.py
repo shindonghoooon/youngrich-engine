@@ -15,6 +15,8 @@ def weighted_quant_score(metrics: list[MetricResult]) -> float:
     total_weight = sum(m.weight for m in metrics)
     if round(total_weight, 6) != 1.0:
         raise ValueError(f"Metric weights must sum to 1.0, got {total_weight:.6f}")
+    if any(m.grade is None for m in metrics):
+        raise ValueError("All metrics must be graded before calculating a Quant score")
 
     return round(sum(GRADE_SCORE[m.grade] * m.weight for m in metrics), 3)
 

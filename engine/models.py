@@ -41,9 +41,10 @@ class MetricResult(BaseModel):
     name: str
     value: Optional[float] = None
     unit: Optional[str] = None
-    grade: Grade
+    grade: Optional[Grade] = None
     trend: Trend = Trend.NA
     weight: float = Field(ge=0, le=1)
+    supporting_tag: Optional[str] = None
     note: Optional[str] = None
 
 

@@ -13,6 +13,16 @@ def test_weighted_score():
     assert quant_grade(3.5) == Grade.A
 
 
+def test_weighted_score_rejects_an_unresolved_metric():
+    metrics = [MetricResult(name="unresolved", grade=None, weight=1.0)]
+    try:
+        weighted_quant_score(metrics)
+    except ValueError as error:
+        assert "must be graded" in str(error)
+    else:
+        raise AssertionError("unresolved metric must not produce a Quant score")
+
+
 def test_cash_conversion_uses_cfo_to_net_income():
     assert grade_cash_conversion(300, 250) == Grade.A
     assert grade_cash_conversion(210, 250) == Grade.B

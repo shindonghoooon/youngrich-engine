@@ -1,0 +1,106 @@
+{
+  "ticker": "STRL",
+  "company_name": "Sterling Infrastructure, Inc.",
+  "currency": "USD",
+  "unit_scale": "thousands",
+  "periods": [
+    {
+      "fiscal_year": 2025,
+      "fiscal_period_end": "2025-12-31",
+      "revenue": 2490049,
+      "operating_income": 405916,
+      "net_income": 290153,
+      "cfo": 439988,
+      "capex": 77312,
+      "cash": 390721,
+      "total_debt": 292882,
+      "diluted_shares": 30947,
+      "diluted_eps": 9.38,
+      "supplied_ebitda": 472000,
+      "supplied_roic": null,
+      "sources": [
+        {
+          "type": "sec_10k",
+          "reference": "https://www.sec.gov/Archives/edgar/data/874238/000087423826000024/strl-20251231.htm",
+          "filing_date": "2026-02-26",
+          "retrieved_at": "2026-08-30T00:00:00+09:00"
+        },
+        {
+          "type": "sec_8k_exhibit",
+          "reference": "https://www.sec.gov/Archives/edgar/data/874238/000087423826000018/a20260225ex992presentati.htm",
+          "filing_date": "2026-02-25",
+          "retrieved_at": "2026-08-30T00:00:00+09:00"
+        }
+      ]
+    },
+    {
+      "fiscal_year": 2024,
+      "fiscal_period_end": "2024-12-31",
+      "revenue": 2115756,
+      "operating_income": 264622,
+      "net_income": 257461,
+      "cfo": 497104,
+      "capex": 80954,
+      "cash": 664195,
+      "total_debt": 317742,
+      "diluted_shares": 31146,
+      "diluted_eps": 8.27,
+      "supplied_ebitda": null,
+      "supplied_roic": null,
+      "sources": [
+        {
+          "type": "sec_10k",
+          "reference": "https://www.sec.gov/Archives/edgar/data/874238/000087423825000025/strl-20241231.htm",
+          "filing_date": "2025-02-25",
+          "retrieved_at": "2026-08-30T00:00:00+09:00"
+        }
+      ]
+    },
+    {
+      "fiscal_year": 2023,
+      "fiscal_period_end": "2023-12-31",
+      "revenue": 1972229,
+      "operating_income": 205795,
+      "net_income": 138655,
+      "cfo": 478584,
+      "capex": 64379,
+      "cash": 471563,
+      "total_debt": 344281,
+      "diluted_shares": 31208,
+      "diluted_eps": 4.44,
+      "supplied_ebitda": null,
+      "supplied_roic": null,
+      "sources": [
+        {
+          "type": "sec_10k",
+          "reference": "https://www.sec.gov/Archives/edgar/data/874238/000087423824000032/strl-20231231.htm",
+          "filing_date": "2024-02-27",
+          "retrieved_at": "2026-08-30T00:00:00+09:00"
+        }
+      ]
+    },
+    {
+      "fiscal_year": 2022,
+      "fiscal_period_end": "2022-12-31",
+      "revenue": 1769436,
+      "operating_income": 159870,
+      "net_income": 96717,
+      "cfo": 219116,
+      "capex": 60909,
+      "cash": 181544,
+      "total_debt": 434564,
+      "diluted_shares": 30564,
+      "diluted_eps": 3.16,
+      "supplied_ebitda": null,
+      "supplied_roic": null,
+      "sources": [
+        {
+          "type": "sec_10k",
+          "reference": "https://www.sec.gov/Archives/edgar/data/874238/000087423824000032/strl-20231231.htm",
+          "filing_date": "2024-02-27",
+          "retrieved_at": "2026-08-30T00:00:00+09:00"
+        }
+      ]
+    }
+  ]
+}

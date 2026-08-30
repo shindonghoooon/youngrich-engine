@@ -28,25 +28,23 @@
 ## Architecture
 
 ```text
-Stock
-  ↓
-Case Router
-  ↓
-Capital Model
-  ↓
-Case Quant Engine
-  ↓
-Quant Quality
-  ├── Valuation
-  ├── Narrative
-  └── Risk / Tracking
-        ↓
-Investment Grade
-        ↓
-SQLite
-  ├── Dashboard
-  └── 1-page Report
+Raw Data
+  -> Normalization
+  -> Metrics
+  -> Case Grading
+  -> Quant Snapshot
+       ├── Valuation
+       ├── Narrative
+       └── Risk / Tracking
+             -> Investment Grade
+             -> SQLite
+                  ├── Dashboard
+                  └── 1-page Report
 ```
+
+Raw financials와 source metadata가 입력 정본이며, Quant Snapshot과 보고서는 언제든
+재생성 가능한 파생 결과입니다. 세부 규칙은
+[Financial Input / Normalization Layer v1](docs/financial-input.md)을 참고하세요.
 
 ## Quick Start
 
@@ -73,6 +71,7 @@ streamlit run dashboard/app.py
 - [ ] Case 1 scoring calibration
 - [x] Router precedence smoke test
 - [x] Cash Economics v1
+- [x] Financial Input / Normalization Layer v1 (STRL)
 - [ ] Router v1 calibration
 - [ ] Valuation engine
 - [ ] Narrative evaluation format

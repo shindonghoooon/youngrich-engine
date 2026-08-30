@@ -1,5 +1,18 @@
 # Architecture
 
+```text
+Raw Data
+  -> Normalization
+  -> Metrics
+  -> Case Grading
+  -> Quant Snapshot
+  -> Valuation / Narrative
+  -> Investment Grade
+```
+
+Raw financial input와 source metadata는 입력 정본이다. Quant Snapshot, Dashboard,
+Report는 정규화된 입력으로부터 생성되는 파생 결과이며 raw data와 분리한다.
+
 ## Layer 1 — Case Router
 
 투자 아이디어의 경제구조를 분류한다.
