@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "youngrich-engine"
+version = "0.1.0"
+description = "Case-based stock analysis engine"
+requires-python = ">=3.11"
+dependencies = [
+  "pydantic>=2.7",
+  "streamlit>=1.40",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*", "engine*"]

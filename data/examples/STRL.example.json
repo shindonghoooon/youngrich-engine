@@ -1,0 +1,102 @@
+{
+  "ticker": "STRL",
+  "company_name": "Sterling Infrastructure",
+  "as_of": "YYYY-MM-DD",
+  "case": "profitable_growth",
+  "capital_model": "project_based",
+  "quant_score": null,
+  "quant_grade": null,
+  "metrics": [
+    {
+      "name": "revenue_growth",
+      "value": null,
+      "unit": "ratio",
+      "grade": "A",
+      "trend": "accelerating",
+      "weight": 0.15
+    },
+    {
+      "name": "operating_profit_growth",
+      "value": null,
+      "unit": "ratio",
+      "grade": "A",
+      "trend": "accelerating",
+      "weight": 0.15
+    },
+    {
+      "name": "margin_trend",
+      "value": null,
+      "unit": "pct_point",
+      "grade": "A",
+      "trend": "accelerating",
+      "weight": 0.1
+    },
+    {
+      "name": "cash_economics",
+      "value": null,
+      "unit": null,
+      "grade": "B",
+      "trend": "stable",
+      "weight": 0.1
+    },
+    {
+      "name": "capital_efficiency",
+      "value": null,
+      "unit": "ratio",
+      "grade": "B",
+      "trend": "stable",
+      "weight": 0.2
+    },
+    {
+      "name": "balance_sheet",
+      "value": null,
+      "unit": "net_debt_ebitda",
+      "grade": "A",
+      "trend": "stable",
+      "weight": 0.1
+    },
+    {
+      "name": "dilution",
+      "value": null,
+      "unit": "ratio",
+      "grade": "A",
+      "trend": "stable",
+      "weight": 0.05
+    },
+    {
+      "name": "per_share_growth",
+      "value": null,
+      "unit": "ratio",
+      "grade": "A",
+      "trend": "accelerating",
+      "weight": 0.15
+    }
+  ],
+  "valuation": {
+    "status": "not_evaluated",
+    "current_price": null,
+    "bear_value": null,
+    "base_value": null,
+    "bull_value": null
+  },
+  "narrative": {
+    "why_growth": "",
+    "why_continue": "",
+    "why_this_company": "",
+    "market_missing": "",
+    "thesis_break": ""
+  },
+  "risks": [],
+  "tracking": [
+    {
+      "name": "Organic Backlog Growth"
+    },
+    {
+      "name": "E-Infrastructure Margin"
+    },
+    {
+      "name": "Book-to-Burn"
+    }
+  ],
+  "investment_grade": null
+}

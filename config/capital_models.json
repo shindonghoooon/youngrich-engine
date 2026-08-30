@@ -1,0 +1,22 @@
+{
+  "asset_light": {
+    "description": "Software, services, platform businesses with relatively low capital intensity",
+    "benchmark_status": "placeholder"
+  },
+  "manufacturing": {
+    "description": "Manufacturing, consumer production, industrial equipment",
+    "benchmark_status": "placeholder"
+  },
+  "capital_intensive": {
+    "description": "Cloud infrastructure, telecom, utilities and heavy infrastructure",
+    "benchmark_status": "placeholder"
+  },
+  "project_based": {
+    "description": "Engineering, construction and project-driven businesses",
+    "benchmark_status": "placeholder"
+  },
+  "rd_ip_driven": {
+    "description": "Pharma and IP/R&D-driven businesses",
+    "benchmark_status": "placeholder"
+  }
+}

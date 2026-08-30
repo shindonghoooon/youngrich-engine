@@ -1,0 +1,27 @@
+{
+  "case": "profitable_growth",
+  "weights": {
+    "revenue_growth": 0.15,
+    "operating_profit_growth": 0.15,
+    "margin_trend": 0.1,
+    "cash_economics": 0.1,
+    "capital_efficiency": 0.2,
+    "balance_sheet": 0.1,
+    "dilution": 0.05,
+    "per_share_growth": 0.15
+  },
+  "grade_score": {
+    "A": 4,
+    "B": 3,
+    "C": 2,
+    "D": 1,
+    "X": 0
+  },
+  "quant_grade_cutoffs": {
+    "A": 3.5,
+    "B": 3.0,
+    "C": 2.4,
+    "D": 1.8
+  },
+  "status": "v1_provisional"
+}

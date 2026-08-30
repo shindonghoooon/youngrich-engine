@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "YoungRich Analysis Snapshot",
+  "type": "object",
+  "required": [
+    "ticker",
+    "company_name",
+    "as_of",
+    "case",
+    "capital_model",
+    "metrics"
+  ],
+  "properties": {
+    "ticker": {
+      "type": "string"
+    },
+    "company_name": {
+      "type": "string"
+    },
+    "as_of": {
+      "type": "string"
+    },
+    "case": {
+      "enum": [
+        "profitable_growth",
+        "loss_making_growth",
+        "cyclical",
+        "quality_compounder",
+        "largecap_value",
+        "asset_special"
+      ]
+    },
+    "capital_model": {
+      "enum": [
+        "asset_light",
+        "manufacturing",
+        "capital_intensive",
+        "project_based",
+        "rd_ip_driven"
+      ]
+    },
+    "quant_score": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "quant_grade": {
+      "enum": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "X",
+        null
+      ]
+    },
+    "metrics": {
+      "type": "array"
+    },
+    "valuation": {
+      "type": "object"
+    },
+    "narrative": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "risks": {
+      "type": "array"
+    },
+    "tracking": {
+      "type": "array"
+    },
+    "investment_grade": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}
