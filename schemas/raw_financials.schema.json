@@ -14,23 +14,26 @@
       "items": {
         "type": "object",
         "required": [
-          "fiscal_year", "fiscal_period_end", "revenue", "operating_income", "net_income", "cfo",
-          "capex", "cash", "total_debt", "diluted_shares", "diluted_eps", "sources"
+          "fiscal_year", "fiscal_period_end", "revenue", "operating_income", "pretax_income",
+          "income_tax_expense", "net_income", "cfo", "capex", "cash", "total_debt",
+          "total_equity", "diluted_shares", "diluted_eps", "sources"
         ],
         "properties": {
           "fiscal_year": {"type": "integer"},
           "fiscal_period_end": {"type": "string", "format": "date"},
           "revenue": {"type": "number"},
           "operating_income": {"type": "number"},
+          "pretax_income": {"type": "number"},
+          "income_tax_expense": {"type": "number"},
           "net_income": {"type": "number"},
           "cfo": {"type": "number"},
           "capex": {"type": "number", "minimum": 0},
           "cash": {"type": "number", "minimum": 0},
           "total_debt": {"type": "number", "minimum": 0},
+          "total_equity": {"type": "number"},
           "diluted_shares": {"type": "number", "exclusiveMinimum": 0},
           "diluted_eps": {"type": "number"},
           "supplied_ebitda": {"type": ["number", "null"]},
-          "supplied_roic": {"type": ["number", "null"]},
           "sources": {
             "type": "array",
             "minItems": 1,

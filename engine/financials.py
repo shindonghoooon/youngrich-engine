@@ -23,15 +23,17 @@ class RawFinancialPeriod(BaseModel):
     fiscal_period_end: date
     revenue: float
     operating_income: float
+    pretax_income: float
+    income_tax_expense: float
     net_income: float
     cfo: float
     capex: float = Field(ge=0)
     cash: float = Field(ge=0)
     total_debt: float = Field(ge=0)
+    total_equity: float
     diluted_shares: float = Field(gt=0)
     diluted_eps: float
     supplied_ebitda: float | None = None
-    supplied_roic: float | None = None
     sources: list[SourceMetadata] = Field(min_length=1)
 
 
@@ -57,15 +59,17 @@ class FinancialPeriod(BaseModel):
     fiscal_period_end: date
     revenue: float
     operating_income: float
+    pretax_income: float
+    income_tax_expense: float
     net_income: float
     cfo: float
     capex: float
     cash: float
     total_debt: float
+    total_equity: float
     diluted_shares: float
     diluted_eps: float
     supplied_ebitda: float | None = None
-    supplied_roic: float | None = None
     sources: list[SourceMetadata] = Field(min_length=1)
 
 
@@ -91,11 +95,14 @@ def normalize_financial_history(raw: RawFinancialHistory) -> FinancialHistory:
     amount_fields = (
         "revenue",
         "operating_income",
+        "pretax_income",
+        "income_tax_expense",
         "net_income",
         "cfo",
         "capex",
         "cash",
         "total_debt",
+        "total_equity",
         "diluted_shares",
         "supplied_ebitda",
     )

@@ -108,9 +108,9 @@ Primary:
 - ROIC
 
 Supporting:
-- 3Y average ROIC
+- Previous-year ROIC
+- Latest ROIC
 - ROIC trend
-- Capital Model benchmark
 
 Base:
 - A: >= 20%
@@ -119,15 +119,10 @@ Base:
 - D: 5% ~ 8%
 - X: < 5%
 
-Capital Model benchmark:
-- > 1.5x model median: +1 notch
-- 0.75x ~ 1.5x: unchanged
-- < 0.75x: -1 notch
-
-Maximum adjustment: +/- 1 grade.
-
 NOTE:
-model median은 충분한 표본을 확보하기 전까지 수동/설정값을 사용한다.
+v1은 reported accounting data 기반 standardized ROIC를 사용하며 Capital Model
+benchmark adjustment를 적용하지 않는다. 세부 공식은
+[Capital Efficiency v1](../capital-efficiency.md)을 따른다.
 
 ## 6. Balance Sheet
 

@@ -3,6 +3,38 @@ from __future__ import annotations
 from engine.financials import FinancialHistory, FinancialPeriod
 
 
+def effective_tax_rate(period: FinancialPeriod) -> float | None:
+    if period.pretax_income <= 0:
+        return None
+    tax_rate = period.income_tax_expense / period.pretax_income
+    if not 0 <= tax_rate <= 0.40:
+        return None
+    return tax_rate
+
+
+def invested_capital(period: FinancialPeriod) -> float:
+    return period.total_debt + period.total_equity - period.cash
+
+
+def average_invested_capital(
+    beginning: FinancialPeriod,
+    ending: FinancialPeriod,
+) -> float:
+    return (invested_capital(beginning) + invested_capital(ending)) / 2
+
+
+def roic_for_period(
+    beginning: FinancialPeriod,
+    ending: FinancialPeriod,
+) -> float | None:
+    tax_rate = effective_tax_rate(ending)
+    capital = average_invested_capital(beginning, ending)
+    if tax_rate is None or capital <= 0:
+        return None
+    nopat = ending.operating_income * (1 - tax_rate)
+    return nopat / capital
+
+
 def cagr(start_value: float, end_value: float, years: int) -> float:
     if start_value <= 0 or end_value < 0:
         raise ValueError("CAGR requires a positive start and non-negative end value")

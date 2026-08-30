@@ -23,6 +23,7 @@ from engine.financial_metrics import (
     operating_income_cagr_3y,
     operating_margin_change_3y,
     revenue_cagr_3y,
+    roic_for_period,
 )
 from engine.financials import FinancialHistory
 from engine.models import AnalysisSnapshot, CapitalModel, CaseType, MetricResult, Trend
@@ -58,6 +59,19 @@ def build_case1_snapshot(
     balance_sheet = net_debt_to_ebitda(history)
     dilution = diluted_share_cagr_3y(history)
     eps_growth = diluted_eps_cagr_3y(history)
+    latest_roic = roic_for_period(previous, latest)
+    previous_roic = roic_for_period(history.periods[-3], previous)
+
+    if latest_roic is None:
+        roic_trend = Trend.NA
+    elif previous_roic is None:
+        roic_trend = Trend.NA
+    elif latest_roic > previous_roic:
+        roic_trend = Trend.ACCELERATING
+    elif latest_roic < previous_roic:
+        roic_trend = Trend.DECELERATING
+    else:
+        roic_trend = Trend.STABLE
 
     metrics = [
         MetricResult(
@@ -103,12 +117,17 @@ def build_case1_snapshot(
         ),
         MetricResult(
             name="capital_efficiency",
-            value=latest.supplied_roic,
+            value=latest_roic,
             unit="ratio",
-            grade=grade_roic(latest.supplied_roic) if latest.supplied_roic is not None else None,
+            grade=grade_roic(latest_roic) if latest_roic is not None else None,
+            trend=roic_trend,
             weight=WEIGHTS["capital_efficiency"],
-            supporting_tag="supplied_roic_required",
-            note="TODO: no engine ROIC formula is fixed in v1",
+            supporting_tag="standardized_roic_v1",
+            note=(
+                f"previous_roic={previous_roic:.4f}; latest_roic={latest_roic:.4f}"
+                if previous_roic is not None and latest_roic is not None
+                else "ROIC unresolved because tax rate or invested capital is invalid"
+            ),
         ),
         MetricResult(
             name="balance_sheet",
