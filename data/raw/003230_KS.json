@@ -1,0 +1,112 @@
+{
+  "ticker": "003230.KS",
+  "company_name": "Samyang Foods Co., Ltd.",
+  "currency": "KRW",
+  "unit_scale": "units",
+  "periods": [
+    {
+      "fiscal_year": 2025,
+      "fiscal_period_end": "2025-12-31",
+      "revenue": 2351785163786,
+      "operating_income": 524188406060,
+      "pretax_income": 516859699624,
+      "income_tax_expense": 128186024899,
+      "net_income_consolidated": 388673674725,
+      "net_income_common": 389437490173,
+      "cfo": 309287213625,
+      "capex": 448988219606,
+      "cash": 332840576772,
+      "total_debt": 439269331805,
+      "total_equity": 1271540001153,
+      "diluted_shares": 7466745,
+      "diluted_eps": 52156,
+      "supplied_ebitda": 587937783060,
+      "sources": [
+        {
+          "type": "official_audit_report",
+          "reference": "https://www.samyangfoods.com/upload/ir/20260318/20260318164557921390.pdf",
+          "filing_date": "2026-03-18",
+          "retrieved_at": "2026-08-31T00:00:00+09:00"
+        }
+      ]
+    },
+    {
+      "fiscal_year": 2022,
+      "fiscal_period_end": "2022-12-31",
+      "revenue": 909036571591,
+      "operating_income": 90375676138,
+      "pretax_income": 101955896513,
+      "income_tax_expense": 21684835519,
+      "net_income_consolidated": 80271060994,
+      "net_income_common": 79794753917,
+      "cfo": 47787143112,
+      "capex": 86894413646,
+      "cash": 96889779765,
+      "total_debt": 273002748176,
+      "total_equity": 454763741502,
+      "diluted_shares": 7482262,
+      "diluted_eps": 10665,
+      "supplied_ebitda": null,
+      "sources": [
+        {
+          "type": "official_audit_report",
+          "reference": "https://www.samyangfoods.com/upload/ir/20240320/20240320183605807005.pdf",
+          "filing_date": "2024-03-20",
+          "retrieved_at": "2026-08-31T00:00:00+09:00"
+        }
+      ]
+    },
+    {
+      "fiscal_year": 2024,
+      "fiscal_period_end": "2024-12-31",
+      "revenue": 1728015003746,
+      "operating_income": 344569150443,
+      "pretax_income": 351640034115,
+      "income_tax_expense": 80384368652,
+      "net_income_consolidated": 271255665463,
+      "net_income_common": 271985324667,
+      "cfo": 357904674484,
+      "capex": 228450369489,
+      "cash": 334820783660,
+      "total_debt": 312800853513,
+      "total_equity": 828033342607,
+      "diluted_shares": 7458128,
+      "diluted_eps": 36468,
+      "supplied_ebitda": null,
+      "sources": [
+        {
+          "type": "official_audit_report",
+          "reference": "https://www.samyangfoods.com/upload/ir/20250318/20250318174220317203.pdf",
+          "filing_date": "2025-03-18",
+          "retrieved_at": "2026-08-31T00:00:00+09:00"
+        }
+      ]
+    },
+    {
+      "fiscal_year": 2023,
+      "fiscal_period_end": "2023-12-31",
+      "revenue": 1192914607980,
+      "operating_income": 147514090779,
+      "pretax_income": 156325436987,
+      "income_tax_expense": 29734237354,
+      "net_income_consolidated": 126591199633,
+      "net_income_common": 126262257254,
+      "cfo": 168099691095,
+      "capex": 44996342023,
+      "cash": 218684811276,
+      "total_debt": 307508888506,
+      "total_equity": 576790316113,
+      "diluted_shares": 7458128,
+      "diluted_eps": 16929,
+      "supplied_ebitda": null,
+      "sources": [
+        {
+          "type": "official_audit_report",
+          "reference": "https://www.samyangfoods.com/upload/ir/20240320/20240320183605807005.pdf",
+          "filing_date": "2024-03-20",
+          "retrieved_at": "2026-08-31T00:00:00+09:00"
+        }
+      ]
+    }
+  ]
+}

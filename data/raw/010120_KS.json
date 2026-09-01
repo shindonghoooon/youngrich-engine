@@ -1,0 +1,112 @@
+{
+  "ticker": "010120.KS",
+  "company_name": "LS ELECTRIC Co., Ltd.",
+  "currency": "KRW",
+  "unit_scale": "units",
+  "periods": [
+    {
+      "fiscal_year": 2023,
+      "fiscal_period_end": "2023-12-31",
+      "revenue": 4230482628448,
+      "operating_income": 324877723039,
+      "pretax_income": 264096354254,
+      "income_tax_expense": 56119941162,
+      "net_income_consolidated": 207672688149,
+      "net_income_common": 205961759130,
+      "cfo": 214646330873,
+      "capex": 112891744498,
+      "cash": 583925062424,
+      "total_debt": 931559247241,
+      "total_equity": 1724042303163,
+      "diluted_shares": 29370821,
+      "diluted_eps": 7012,
+      "supplied_ebitda": null,
+      "sources": [
+        {
+          "type": "official_audit_report",
+          "reference": "https://www.ls-electric.com/ko/company/invest/data/LS_ELECTRIC_2023%EB%85%84_%EC%97%B0%EA%B2%B0.zip",
+          "filing_date": "2024-03-13",
+          "retrieved_at": "2026-08-31T00:00:00+09:00"
+        }
+      ]
+    },
+    {
+      "fiscal_year": 2025,
+      "fiscal_period_end": "2025-12-31",
+      "revenue": 4965798552980,
+      "operating_income": 426407143017,
+      "pretax_income": 410070300948,
+      "income_tax_expense": 125813567776,
+      "net_income_consolidated": 284256733172,
+      "net_income_common": 286623001987,
+      "cfo": 299948385888,
+      "capex": 200850433496,
+      "cash": 762716704001,
+      "total_debt": 1342392119933,
+      "total_equity": 2141298852376,
+      "diluted_shares": 29712376,
+      "diluted_eps": 9647,
+      "supplied_ebitda": 558723357101,
+      "sources": [
+        {
+          "type": "official_audit_report",
+          "reference": "https://www.ls-electric.com/ko/company/invest/data/LS_ELECTRIC_2025%EB%85%84_%EC%97%B0%EA%B2%B0.zip",
+          "filing_date": "2026-03-18",
+          "retrieved_at": "2026-08-31T00:00:00+09:00"
+        }
+      ]
+    },
+    {
+      "fiscal_year": 2022,
+      "fiscal_period_end": "2022-12-31",
+      "revenue": 3377070215838,
+      "operating_income": 187524016869,
+      "pretax_income": 126966694511,
+      "income_tax_expense": 34989503509,
+      "net_income_consolidated": 91209999630,
+      "net_income_common": 90303429399,
+      "cfo": -145446470458,
+      "capex": 114877661307,
+      "cash": 556085787716,
+      "total_debt": 876489287741,
+      "total_equity": 1549291005666,
+      "diluted_shares": 29348482,
+      "diluted_eps": 3077,
+      "supplied_ebitda": null,
+      "sources": [
+        {
+          "type": "official_audit_report",
+          "reference": "https://www.ls-electric.com/ko/company/invest/data/LS_ELECTRIC_2022%EB%85%84_%EC%97%B0%EA%B2%B0.zip",
+          "filing_date": "2023-03-20",
+          "retrieved_at": "2026-08-31T00:00:00+09:00"
+        }
+      ]
+    },
+    {
+      "fiscal_year": 2024,
+      "fiscal_period_end": "2024-12-31",
+      "revenue": 4551837252467,
+      "operating_income": 389717122317,
+      "pretax_income": 333366621610,
+      "income_tax_expense": 91149742542,
+      "net_income_consolidated": 242237998768,
+      "net_income_common": 238715669205,
+      "cfo": 230146922129,
+      "capex": 145243521908,
+      "cash": 660104319206,
+      "total_debt": 1174025910817,
+      "total_equity": 1890092083448,
+      "diluted_shares": 29551721,
+      "diluted_eps": 8078,
+      "supplied_ebitda": null,
+      "sources": [
+        {
+          "type": "official_audit_report",
+          "reference": "https://www.ls-electric.com/ko/company/invest/data/LS_ELECTRIC_2024%EB%85%84_%EC%97%B0%EA%B2%B0.zip",
+          "filing_date": "2025-03-17",
+          "retrieved_at": "2026-08-31T00:00:00+09:00"
+        }
+      ]
+    }
+  ]
+}

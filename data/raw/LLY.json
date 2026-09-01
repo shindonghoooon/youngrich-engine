@@ -1,0 +1,142 @@
+{
+  "ticker": "LLY",
+  "company_name": "Eli Lilly and Company",
+  "currency": "USD",
+  "unit_scale": "millions",
+  "periods": [
+    {
+      "fiscal_year": 2024,
+      "fiscal_period_end": "2024-12-31",
+      "revenue": 45042.7,
+      "operating_income": 12899.0,
+      "pretax_income": 12680.4,
+      "income_tax_expense": 2090.4,
+      "net_income_consolidated": 10590.0,
+      "net_income_common": 10590.0,
+      "cfo": 8817.9,
+      "capex": 5057.8,
+      "cash": 3268.4,
+      "total_debt": 33644.2,
+      "total_equity": 14271.6,
+      "diluted_shares": 904.059,
+      "diluted_eps": 11.71,
+      "supplied_ebitda": null,
+      "sources": [
+        {
+          "type": "sec_10k",
+          "reference": "https://investor.lilly.com/static-files/84711071-9e5a-47e1-bc74-d0753a2d93a8",
+          "filing_date": "2025-02-19",
+          "retrieved_at": "2026-08-31T00:00:00+09:00"
+        },
+        {
+          "type": "official_earnings_release",
+          "reference": "https://investor.lilly.com/news-releases/news-release-details/lilly-reports-full-q4-2024-financial-results-and-provides-2025",
+          "filing_date": "2025-02-06",
+          "retrieved_at": "2026-08-31T00:00:00+09:00"
+        }
+      ]
+    },
+    {
+      "fiscal_year": 2022,
+      "fiscal_period_end": "2022-12-31",
+      "revenue": 28541.4,
+      "operating_income": 7127.3,
+      "pretax_income": 6806.4,
+      "income_tax_expense": 561.6,
+      "net_income_consolidated": 6244.8,
+      "net_income_common": 6244.8,
+      "cfo": 7585.7,
+      "capex": 1854.3,
+      "cash": 2067.0,
+      "total_debt": 16238.6,
+      "total_equity": 10775.4,
+      "diluted_shares": 904.619,
+      "diluted_eps": 6.90,
+      "supplied_ebitda": null,
+      "sources": [
+        {
+          "type": "sec_10k_comparative",
+          "reference": "https://investor.lilly.com/static-files/84711071-9e5a-47e1-bc74-d0753a2d93a8",
+          "filing_date": "2025-02-19",
+          "retrieved_at": "2026-08-31T00:00:00+09:00"
+        },
+        {
+          "type": "sec_companyfacts",
+          "reference": "https://data.sec.gov/api/xbrl/companyfacts/CIK0000059478.json",
+          "filing_date": "2026-02-12",
+          "retrieved_at": "2026-08-31T00:00:00+09:00"
+        },
+        {
+          "type": "official_earnings_release",
+          "reference": "https://investor.lilly.com/static-files/5faefa00-79a8-40c1-bb68-15292673527d",
+          "filing_date": "2023-02-02",
+          "retrieved_at": "2026-08-31T00:00:00+09:00"
+        }
+      ]
+    },
+    {
+      "fiscal_year": 2025,
+      "fiscal_period_end": "2025-12-31",
+      "revenue": 65179.0,
+      "operating_income": 26302.0,
+      "pretax_income": 25731.0,
+      "income_tax_expense": 5091.0,
+      "net_income_consolidated": 20640.0,
+      "net_income_common": 20640.0,
+      "cfo": 16813.0,
+      "capex": 7841.0,
+      "cash": 7268.0,
+      "total_debt": 42503.0,
+      "total_equity": 26535.0,
+      "diluted_shares": 899.3,
+      "diluted_eps": 22.95,
+      "supplied_ebitda": 28299.0,
+      "sources": [
+        {
+          "type": "sec_10k",
+          "reference": "https://investor.lilly.com/static-files/0d64699c-0cc7-490e-9152-b2ba1de08634",
+          "filing_date": "2026-02-12",
+          "retrieved_at": "2026-08-31T00:00:00+09:00"
+        },
+        {
+          "type": "official_earnings_release",
+          "reference": "https://investor.lilly.com/news-releases/news-release-details/lilly-reports-fourth-quarter-2025-financial-results-and-provides",
+          "filing_date": "2026-02-04",
+          "retrieved_at": "2026-08-31T00:00:00+09:00"
+        }
+      ]
+    },
+    {
+      "fiscal_year": 2023,
+      "fiscal_period_end": "2023-12-31",
+      "revenue": 34124.1,
+      "operating_income": 6457.9,
+      "pretax_income": 6554.6,
+      "income_tax_expense": 1314.2,
+      "net_income_consolidated": 5240.4,
+      "net_income_common": 5240.4,
+      "cfo": 4240.1,
+      "capex": 3447.6,
+      "cash": 2818.6,
+      "total_debt": 25225.3,
+      "total_equity": 10863.7,
+      "diluted_shares": 903.284,
+      "diluted_eps": 5.80,
+      "supplied_ebitda": null,
+      "sources": [
+        {
+          "type": "sec_10k_comparative",
+          "reference": "https://investor.lilly.com/static-files/84711071-9e5a-47e1-bc74-d0753a2d93a8",
+          "filing_date": "2025-02-19",
+          "retrieved_at": "2026-08-31T00:00:00+09:00"
+        },
+        {
+          "type": "official_earnings_release",
+          "reference": "https://investor.lilly.com/node/50281",
+          "filing_date": "2024-02-06",
+          "retrieved_at": "2026-08-31T00:00:00+09:00"
+        }
+      ]
+    }
+  ]
+}
