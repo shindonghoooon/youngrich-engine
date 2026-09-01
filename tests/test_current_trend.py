@@ -9,6 +9,7 @@ from engine.current_trend import (
     attach_current_trend,
     balance_sheet_signal,
     build_current_trend_overlay,
+    cash_economics_observation,
     cash_economics_signal,
     growth_signal,
     margin_signal,
@@ -37,12 +38,18 @@ def test_margin_signal(current, expected):
     assert margin_signal(0.10, current) == expected
 
 
-@pytest.mark.parametrize(
-    ("current", "expected"),
-    [(1.20, "positive"), (0.95, "neutral"), (0.80, "negative")],
-)
-def test_cash_economics_signal(current, expected):
-    assert cash_economics_signal(1.0, current) == expected
+def test_cash_absolute_healthy_floor_neutralizes_relative_deterioration():
+    assert cash_economics_signal(1.90, 1.20) == "neutral"
+    observation = cash_economics_observation(1.90, 1.20, 0.25)
+    assert "relative deterioration, absolute conversion remains healthy" in observation
+
+
+def test_cash_true_deterioration_remains_negative():
+    assert cash_economics_signal(1.20, 0.80) == "negative"
+
+
+def test_cash_acceleration_is_positive():
+    assert cash_economics_signal(1.00, 1.20) == "positive"
 
 
 @pytest.mark.parametrize(
@@ -55,11 +62,17 @@ def test_balance_sheet_signal(current, expected):
 
 def test_overall_current_signal_rules():
     assert overall_current_signal(
-        ["positive", "positive", "positive", "neutral", "neutral"]
+        ["positive", "positive", "positive", "negative", "neutral"]
     ) == "positive"
+    assert overall_current_signal(
+        ["negative", "negative", "negative", "positive", "neutral"]
+    ) == "negative"
     assert overall_current_signal(
         ["positive", "positive", "negative", "negative", "neutral"]
     ) == "mixed"
+    assert overall_current_signal(
+        ["positive", "negative", "neutral", "neutral", "neutral"]
+    ) == "neutral"
     assert overall_current_signal(
         ["positive", "unresolved", "unresolved", "unresolved", "neutral"]
     ) == "unresolved"
@@ -122,9 +135,12 @@ def test_strl_current_overlay_reproduces_official_h1_data():
     assert overlay.revenue_growth.signal == "positive"
     assert overlay.operating_profit_growth.signal == "positive"
     assert overlay.margin_trend.signal == "positive"
-    assert overlay.cash_economics.signal == "negative"
+    assert overlay.cash_economics.signal == "neutral"
+    assert "relative deterioration, absolute conversion remains healthy" in (
+        overlay.cash_economics.observation
+    )
     assert overlay.balance_sheet.signal == "neutral"
-    assert overlay.overall_signal == "neutral"
+    assert overlay.overall_signal == "positive"
 
 
 @pytest.mark.parametrize(

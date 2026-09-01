@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from engine.current_financials import CurrentTrendInput
+from engine.cases.profitable_growth import grade_cash_conversion
 from engine.financial_metrics import (
     cumulative_cfo_to_net_income_3y,
     net_debt_to_ebitda,
@@ -12,6 +13,7 @@ from engine.models import (
     AnalysisSnapshot,
     CurrentMetricSignal,
     CurrentTrendOverlay,
+    Grade,
     OverallCurrentSignal,
 )
 
@@ -44,9 +46,41 @@ def cash_economics_signal(
         return "unresolved"
     if current_conversion >= base_conversion * 1.10:
         return "positive"
-    if current_conversion < base_conversion * 0.90:
-        return "negative"
-    return "neutral"
+    if current_conversion >= base_conversion * 0.90:
+        return "neutral"
+    if _is_absolute_healthy_cash_conversion(current_conversion):
+        return "neutral"
+    return "negative"
+
+
+def _is_absolute_healthy_cash_conversion(conversion: float) -> bool:
+    # Reuse the Annual Cash Economics A-grade rule without introducing a new floor.
+    return grade_cash_conversion(conversion, 1.0) == Grade.A
+
+
+def cash_economics_observation(
+    base_conversion: float,
+    current_conversion: float | None,
+    current_capex_to_cfo: float | None,
+) -> str:
+    if current_conversion is None:
+        return "current cumulative CFO or consolidated net income unavailable"
+
+    parts = [
+        f"current_conversion={current_conversion:.4f}",
+        f"annual_conversion={base_conversion:.4f}",
+        (
+            f"current_capex_to_cfo={current_capex_to_cfo:.4f}"
+            if current_capex_to_cfo is not None
+            else "current_capex_to_cfo=unresolved"
+        ),
+    ]
+    if (
+        current_conversion < base_conversion * 0.90
+        and _is_absolute_healthy_cash_conversion(current_conversion)
+    ):
+        parts.append("relative deterioration, absolute conversion remains healthy")
+    return "; ".join(parts)
 
 
 def balance_sheet_signal(base_ratio: float, current_ratio: float | None) -> str:
@@ -66,9 +100,9 @@ def overall_current_signal(signals: list[str]) -> OverallCurrentSignal:
         return "unresolved"
     positive = resolved.count("positive")
     negative = resolved.count("negative")
-    if positive >= 3 and negative == 0:
+    if positive >= 3 and positive > negative:
         return "positive"
-    if negative >= 3 and positive == 0:
+    if negative >= 3 and negative > positive:
         return "negative"
     if positive >= 2 and negative >= 2:
         return "mixed"
@@ -110,6 +144,7 @@ def build_current_trend_overlay(
     prior_margin = _safe_margin(prior.operating_income, prior.revenue)
     current_conversion = _safe_ratio(current.cfo, current.net_income_consolidated)
     current_capex_to_cfo = _safe_ratio(current.capex, current.cfo)
+    base_conversion = cumulative_cfo_to_net_income_3y(annual_history)
 
     latest_annual = annual_history.periods[-1]
     base_balance = net_debt_to_ebitda(annual_history)
@@ -157,15 +192,9 @@ def build_current_trend_overlay(
     )
     cash = CurrentMetricSignal(
         metric="cash_economics",
-        signal=cash_economics_signal(
-            cumulative_cfo_to_net_income_3y(annual_history), current_conversion
-        ),
-        observation=(
-            f"current_conversion={current_conversion:.4f}; "
-            f"annual_conversion={cumulative_cfo_to_net_income_3y(annual_history):.4f}; "
-            f"current_capex_to_cfo={current_capex_to_cfo:.4f}"
-            if current_conversion is not None and current_capex_to_cfo is not None
-            else "current cumulative CFO, net income, or CAPEX unavailable"
+        signal=cash_economics_signal(base_conversion, current_conversion),
+        observation=cash_economics_observation(
+            base_conversion, current_conversion, current_capex_to_cfo
         ),
     )
     balance = CurrentMetricSignal(

@@ -1,0 +1,45 @@
+{
+  "ticker": "003230.KS",
+  "currency": "KRW",
+  "unit_scale": "units",
+  "as_of": "2026-09-01",
+  "period_label": "2026 Q2 / H1",
+  "current_ttm_ebitda": 700311593066,
+  "current": {
+    "period_end": "2026-06-30",
+    "period_type": "ytd",
+    "revenue": 1484714694859,
+    "operating_income": 353313697185,
+    "net_income_consolidated": 282054263527,
+    "cfo": 268261537370,
+    "capex": 103332626669,
+    "cash": 630597456886,
+    "total_debt": 601829994820,
+    "total_equity": 1548267306870,
+    "sources": [
+      {
+        "type": "dart_half_year_report",
+        "reference": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260814003053",
+        "filing_date": "2026-08-14",
+        "retrieved_at": "2026-09-01T00:00:00+09:00"
+      }
+    ]
+  },
+  "prior_comparable": {
+    "period_end": "2025-06-30",
+    "period_type": "ytd",
+    "revenue": 1082090816109,
+    "operating_income": 254076409179,
+    "net_income_consolidated": 183034248554,
+    "cfo": 129199722198,
+    "capex": 324933473808,
+    "sources": [
+      {
+        "type": "dart_half_year_report_comparative",
+        "reference": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260814003053",
+        "filing_date": "2026-08-14",
+        "retrieved_at": "2026-09-01T00:00:00+09:00"
+      }
+    ]
+  }
+}

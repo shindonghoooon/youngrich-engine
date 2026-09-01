@@ -1,0 +1,44 @@
+{
+  "ticker": "LLY",
+  "currency": "USD",
+  "unit_scale": "millions",
+  "as_of": "2026-09-01",
+  "period_label": "2026 Q2 / H1",
+  "current_ttm_ebitda": 35732,
+  "current": {
+    "period_end": "2026-06-30",
+    "period_type": "ytd",
+    "revenue": 42773,
+    "operating_income": 17893,
+    "net_income_consolidated": 14491,
+    "cfo": 16023,
+    "capex": 5259,
+    "cash": 8950,
+    "total_debt": 54908,
+    "sources": [
+      {
+        "type": "sec_10q",
+        "reference": "https://www.sec.gov/Archives/edgar/data/59478/000005947826000081/lly-20260630.htm",
+        "filing_date": "2026-08-05",
+        "retrieved_at": "2026-09-01T00:00:00+09:00"
+      }
+    ]
+  },
+  "prior_comparable": {
+    "period_end": "2025-06-30",
+    "period_type": "ytd",
+    "revenue": 28286,
+    "operating_income": 10562,
+    "net_income_consolidated": 8420,
+    "cfo": 4753,
+    "capex": 3207,
+    "sources": [
+      {
+        "type": "sec_10q_comparative",
+        "reference": "https://www.sec.gov/Archives/edgar/data/59478/000005947826000081/lly-20260630.htm",
+        "filing_date": "2026-08-05",
+        "retrieved_at": "2026-09-01T00:00:00+09:00"
+      }
+    ]
+  }
+}
