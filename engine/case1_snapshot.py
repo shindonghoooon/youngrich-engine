@@ -166,5 +166,8 @@ def build_case1_snapshot(
         capital_model=capital_model,
         quant_score=score,
         quant_grade=grade,
+        quant_based_on=(
+            f"FY{history.periods[0].fiscal_year}-FY{latest.fiscal_year}"
+        ),
         metrics=metrics,
     )

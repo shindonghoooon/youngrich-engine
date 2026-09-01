@@ -1,6 +1,7 @@
 # YoungRich Engine
 
-기업을 경제구조에 따라 분류하고, **고정된 Quant Core + Valuation + Narrative**를 결합해
+기업을 경제구조에 따라 분류하고, **고정된 Annual Quant Core + Current Trend +
+Valuation + Narrative**를 결합해
 투자 매력도와 실제 성과를 추적하는 주식 분석 엔진입니다.
 
 ## 핵심 원칙
@@ -32,10 +33,10 @@ Raw Data
   -> Normalization
   -> Metrics
   -> Case Grading
-  -> Quant Snapshot
-       ├── Valuation
-       ├── Narrative
-       └── Risk / Tracking
+  -> Annual Base Quant / Quant Grade
+       + Current Trend Overlay
+       -> Valuation
+       -> Narrative / Expectation Gap / Risk
              -> Investment Grade
              -> SQLite
                   ├── Dashboard
@@ -45,6 +46,8 @@ Raw Data
 Raw financials와 source metadata가 입력 정본이며, Quant Snapshot과 보고서는 언제든
 재생성 가능한 파생 결과입니다. 세부 규칙은
 [Financial Input / Normalization Layer v1](docs/financial-input.md)을 참고하세요.
+최신 분기 방향성은 연간 Quant Grade를 변경하지 않는
+[Current Trend Overlay v1](docs/current-trend-overlay.md)로 분리합니다.
 
 ## Quick Start
 
@@ -72,6 +75,7 @@ streamlit run dashboard/app.py
 - [x] Router precedence smoke test
 - [x] Cash Economics v1
 - [x] Financial Input / Normalization Layer v1 (STRL)
+- [x] Current Trend Overlay v1 (STRL Q2/H1 2026 validation)
 - [ ] Router v1 calibration
 - [ ] Valuation engine
 - [ ] Narrative evaluation format

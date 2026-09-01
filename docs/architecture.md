@@ -5,8 +5,10 @@ Raw Data
   -> Normalization
   -> Metrics
   -> Case Grading
-  -> Quant Snapshot
-  -> Valuation / Narrative
+  -> Annual Base Quant / Quant Grade
+       + Current Trend Overlay
+  -> Valuation
+  -> Narrative / Expectation Gap / Risk
   -> Investment Grade
 ```
 
@@ -54,7 +56,14 @@ Profitable Growth v1:
 7. Dilution
 8. Per-share Growth
 
-## Layer 4 — Valuation
+## Layer 4 — Current Trend Overlay
+
+Current Trend Overlay는 Annual Base Quant 이후, Valuation 이전에 위치한다.
+동일 기간 YoY 및 누적 current-period 자료로 현재 영업 방향을 표시하지만 Annual
+Quant Score나 Grade를 수정하지 않는다. 세부 규칙은
+[Current Trend Overlay v1](current-trend-overlay.md)을 참고한다.
+
+## Layer 5 — Valuation
 
 Quant Quality와 분리한다.
 
@@ -69,7 +78,7 @@ Quant Quality와 분리한다.
 - reverse DCF
 - Bull / Base / Bear expected return
 
-## Layer 5 — Narrative
+## Layer 6 — Narrative
 
 정성 평가는 Quant 이후 수행한다.
 
@@ -82,7 +91,7 @@ Quant Quality와 분리한다.
 
 Narrative는 Quant 점수를 수정하지 않는다.
 
-## Layer 6 — Tracking
+## Layer 7 — Tracking
 
 기업별 KPI 1~3개만 저장한다.
 
@@ -94,7 +103,7 @@ STRL
 
 Tracking KPI는 Core 지표가 아니다.
 
-## Layer 7 — Performance
+## Layer 8 — Performance
 
 향후 반드시 측정:
 - 3M / 6M / 1Y returns

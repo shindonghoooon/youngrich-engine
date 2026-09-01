@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional
+from datetime import date
+from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 
@@ -35,6 +36,29 @@ class Trend(str, Enum):
     STABLE = "stable"
     DECELERATING = "decelerating"
     NA = "na"
+
+
+CurrentSignal = Literal["positive", "neutral", "negative", "unresolved"]
+OverallCurrentSignal = Literal[
+    "positive", "neutral", "negative", "mixed", "unresolved"
+]
+
+
+class CurrentMetricSignal(BaseModel):
+    metric: str
+    signal: CurrentSignal
+    observation: Optional[str] = None
+
+
+class CurrentTrendOverlay(BaseModel):
+    as_of: date
+    period_label: str
+    revenue_growth: CurrentMetricSignal
+    operating_profit_growth: CurrentMetricSignal
+    margin_trend: CurrentMetricSignal
+    cash_economics: CurrentMetricSignal
+    balance_sheet: CurrentMetricSignal
+    overall_signal: OverallCurrentSignal
 
 
 class MetricResult(BaseModel):
@@ -80,7 +104,9 @@ class AnalysisSnapshot(BaseModel):
 
     quant_score: Optional[float] = None
     quant_grade: Optional[Grade] = None
+    quant_based_on: Optional[str] = None
     metrics: list[MetricResult] = []
+    current_trend: Optional[CurrentTrendOverlay] = None
 
     valuation: Valuation = Valuation()
     narrative: Optional[Narrative] = None

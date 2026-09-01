@@ -1,0 +1,55 @@
+{
+  "ticker": "STRL",
+  "currency": "USD",
+  "unit_scale": "thousands",
+  "as_of": "2026-08-04",
+  "period_label": "2026 Q2 / H1",
+  "current_ttm_ebitda": 672448,
+  "current": {
+    "period_end": "2026-06-30",
+    "period_type": "ytd",
+    "revenue": 1993854,
+    "operating_income": 357075,
+    "net_income_consolidated": 272411,
+    "cfo": 328021,
+    "capex": 69646,
+    "cash": 464451,
+    "total_debt": 285305,
+    "total_equity": 1390549,
+    "diluted_shares": 31110,
+    "diluted_eps": 8.09,
+    "sources": [
+      {
+        "type": "sec_10q",
+        "reference": "https://www.sec.gov/Archives/edgar/data/874238/000087423826000103/strl-20260630.htm",
+        "filing_date": "2026-08-04",
+        "retrieved_at": "2026-08-31T00:00:00+09:00"
+      },
+      {
+        "type": "sec_8k_exhibit",
+        "reference": "https://www.sec.gov/Archives/edgar/data/874238/000087423826000100/a20260803ex991earningsrele.htm",
+        "filing_date": "2026-08-03",
+        "retrieved_at": "2026-08-31T00:00:00+09:00"
+      }
+    ]
+  },
+  "prior_comparable": {
+    "period_end": "2025-06-30",
+    "period_type": "ytd",
+    "revenue": 1045417,
+    "operating_income": 160640,
+    "net_income_consolidated": 121699,
+    "cfo": 170311,
+    "capex": 31262,
+    "diluted_shares": 30804,
+    "diluted_eps": 3.59,
+    "sources": [
+      {
+        "type": "sec_10q_comparative",
+        "reference": "https://www.sec.gov/Archives/edgar/data/874238/000087423826000103/strl-20260630.htm",
+        "filing_date": "2026-08-04",
+        "retrieved_at": "2026-08-31T00:00:00+09:00"
+      }
+    ]
+  }
+}
