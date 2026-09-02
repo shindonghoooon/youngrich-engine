@@ -13,6 +13,17 @@ This section is the current source of truth. Later Case 2 historical validation 
 explain how the design evolved; any `candidate`, `provisional`, or `not frozen` wording
 in those notes is superseded by this section.
 
+Detailed authoritative specifications:
+
+- [Case 2 Quant v1](docs/case2-quant-v1.md)
+- [Case 2 Current Trend v1](docs/case2-current-trend-v1.md)
+- [Narrative v1](docs/narrative-v1.md)
+- [Common Valuation v1](docs/valuation-v1.md)
+- [Investment Grade v1](docs/investment-grade-v1.md)
+
+The detailed files own formulas, thresholds, and edge cases. This handoff document owns
+the high-level architecture and frozen status; avoid copying new formula variants here.
+
 ## Frozen status
 
 ```text

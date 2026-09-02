@@ -8,13 +8,15 @@ from engine.tracking_models import (
     AdjustmentType,
     AnalysisCase,
     AnalysisSnapshot,
+    AssumptionRange,
     AsymmetryType,
     CurrentTrendSignal,
     CurrentTrendSnapshot,
     DirectionState,
     ExecutablePriceSnapshot,
+    ExitMultipleAssumption,
+    ExitMultipleBand,
     ExitMultipleEvidenceSource,
-    ExitMultipleRange,
     GradeCap,
     GrowthScope,
     InvestmentGrade,
@@ -32,6 +34,7 @@ from engine.tracking_models import (
     TrendFlag,
     ValuationAssumptionSet,
     ValuationConfidence,
+    ValuationMetric,
     ValuationOutput,
     ValuationSnapshot,
 )
@@ -236,17 +239,39 @@ def test_price_only_revaluation_preserves_assumption_version():
         assumption_set_id="strl-valuation-assumptions",
         version=3,
         case=AnalysisCase.CASE_1_PROFITABLE_GROWTH,
+        horizon_years=3,
         terminal_stage=TerminalStage.MATURE,
-        exit_multiple_range=ExitMultipleRange(
-            conservative=12,
-            base=16,
-            premium=20,
-        ),
-        exit_multiple_evidence=frozenset(
-            {
-                ExitMultipleEvidenceSource.COMPANY_HISTORY,
-                ExitMultipleEvidenceSource.COMPARABLE_COMPANIES,
-            }
+        terminal_stage_rationale="mature profitable growth horizon",
+        terminal_stage_confidence=ValuationConfidence.MEDIUM,
+        primary_metric=ValuationMetric.PE,
+        plausible_growth_range=AssumptionRange(low=0.10, high=0.20),
+        exit_multiples=tuple(
+            ExitMultipleAssumption(
+                band=band,
+                metric_type=ValuationMetric.PE,
+                value=value,
+                evidence_type=evidence,
+                source_reference="versioned valuation evidence",
+                as_of=AS_OF,
+                rationale="test assumption",
+            )
+            for band, value, evidence in (
+                (
+                    ExitMultipleBand.CONSERVATIVE,
+                    12,
+                    ExitMultipleEvidenceSource.COMPANY_HISTORY,
+                ),
+                (
+                    ExitMultipleBand.BASE,
+                    16,
+                    ExitMultipleEvidenceSource.COMPARABLE_COMPANIES,
+                ),
+                (
+                    ExitMultipleBand.PREMIUM,
+                    20,
+                    ExitMultipleEvidenceSource.COMPARABLE_COMPANIES,
+                ),
+            )
         ),
     )
     original = ValuationSnapshot(
@@ -378,6 +403,7 @@ def test_investment_grade_cap_trigger_is_representable():
         final_grade=InvestmentGrade.D,
         adjustments=(
             InvestmentGradeAdjustment(
+                sequence=1,
                 adjustment_type=AdjustmentType.CAP,
                 trigger=InvestmentGradeTrigger.FUNDING_STRESS,
                 active=True,

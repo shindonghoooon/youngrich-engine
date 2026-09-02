@@ -46,8 +46,9 @@ combined with an earlier year-end price.
 | `SnapshotDiff` | Changes between immutable snapshots and KPI-version protection |
 | `PerformanceSnapshot` | Returns/drawdown tied to an analysis and executable entry price |
 
-Supporting contracts include `ValuationAssumptionSet`, `ValuationOutput`,
-`InvestmentGradeAdjustment`, `GradeCap`, and `ExecutablePriceSnapshot`.
+Supporting contracts include `ValuationAssumptionSet`, `ExitMultipleAssumption`,
+`ValuationOutput`, `NarrativeGate`, `InvestmentGradeAdjustment`, `GradeCap`, and
+`ExecutablePriceSnapshot`.
 
 ## Immutability and versioning
 
@@ -96,8 +97,9 @@ Deterioration without adding another numeric metric.
 ## Valuation price-only updates
 
 `ValuationAssumptionSet` stores the assumption identity and version. The default required
-return is 15% within the 10% / 15% / 20% sensitivity set. Terminal stage and exit-range
-evidence are versioned assumptions.
+return is 15% within the 10% / 15% / 20% sensitivity set. Terminal stage, rationale,
+confidence, plausible growth, dilution/margin inputs, and each evidence-backed
+Conservative/Base/Premium exit multiple are versioned assumptions.
 
 `ValuationSnapshot.reprice()` creates a new snapshot with a new price/output but carries
 forward the same immutable assumption set. It does not accept an assumption replacement.
@@ -124,4 +126,3 @@ There is no automatic conversion or database migration in v0.1. A future migrati
 3. preserve existing snapshot ids/history rather than overwrite records;
 4. explicitly map the legacy `loss_making_growth` enum to Case 2 only after router and
    persistence compatibility are reviewed.
-

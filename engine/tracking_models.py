@@ -53,6 +53,15 @@ class NarrativeState(str, Enum):
     UNRESOLVED = "unresolved"
 
 
+class NarrativeGate(str, Enum):
+    CONFIRMED = "confirmed"
+    QUALIFIED = "qualified"
+    DEVELOPING = "developing"
+    WEAK = "weak"
+    BROKEN = "broken"
+    UNRESOLVED = "unresolved"
+
+
 class DirectionState(str, Enum):
     STRONG_POSITIVE = "strong_positive"
     POSITIVE = "positive"
@@ -99,7 +108,7 @@ class ValuationConfidence(str, Enum):
 
 class ExpectationGap(str, Enum):
     POSITIVE = "positive"
-    NEUTRAL = "neutral"
+    OVERLAP = "overlap"
     NEGATIVE = "negative"
     UNRESOLVED = "unresolved"
 
@@ -138,7 +147,21 @@ class InvestmentGradeTrigger(str, Enum):
 class ExitMultipleEvidenceSource(str, Enum):
     COMPANY_HISTORY = "company_history"
     COMPARABLE_COMPANIES = "comparable_companies"
-    BUSINESS_CAPITAL_MODEL_BENCHMARK = "business_capital_model_benchmark"
+    BUSINESS_CAPITAL_MODEL = "business_capital_model"
+
+
+class ExitMultipleBand(str, Enum):
+    CONSERVATIVE = "conservative"
+    BASE = "base"
+    PREMIUM = "premium"
+
+
+class ValuationMetric(str, Enum):
+    PE = "pe"
+    EV_REVENUE = "ev_revenue"
+    EV_GROSS_PROFIT = "ev_gross_profit"
+    EV_EBIT = "ev_ebit"
+    FCF = "fcf"
 
 
 class MetricResult(FrozenDomainModel):
@@ -180,9 +203,12 @@ class QuantSnapshot(TemporalSnapshot):
     metrics: tuple[MetricResult, ...]
     state: ResolutionState
     score: float | None = None
+    uncapped_grade: Grade | None = None
     grade: Grade | None = None
     grade_caps: tuple[GradeCap, ...] = ()
     growth_scope: GrowthScope | None = None
+    coverage: float = Field(default=1.0, ge=0, le=1)
+    provisional: bool = False
 
     @model_validator(mode="after")
     def validate_quant_contract(self) -> Self:
@@ -193,10 +219,16 @@ class QuantSnapshot(TemporalSnapshot):
         if abs(core_weight - 1.0) > 1e-9:
             raise ValueError("core metric weights must sum to 1.0")
         if self.state == ResolutionState.UNRESOLVED:
-            if self.score is not None or self.grade is not None:
+            if (
+                self.score is not None
+                or self.uncapped_grade is not None
+                or self.grade is not None
+            ):
                 raise ValueError("unresolved QuantSnapshot cannot have score or grade")
         elif self.score is None or self.grade is None:
             raise ValueError("resolved QuantSnapshot requires score and grade")
+        if self.coverage < 1.0 and not self.provisional:
+            raise ValueError("partial metric coverage must be marked provisional")
         return self
 
 
@@ -314,16 +346,25 @@ class ThesisStatusSnapshot(TemporalSnapshot):
     note: str | None = None
 
 
-class ExitMultipleRange(FrozenDomainModel):
-    conservative: float = Field(gt=0)
-    base: float = Field(gt=0)
-    premium: float = Field(gt=0)
+class AssumptionRange(FrozenDomainModel):
+    low: float
+    high: float
 
     @model_validator(mode="after")
     def validate_order(self) -> Self:
-        if not self.conservative <= self.base <= self.premium:
-            raise ValueError("exit multiple range must be conservative <= base <= premium")
+        if self.low > self.high:
+            raise ValueError("assumption range must be low <= high")
         return self
+
+
+class ExitMultipleAssumption(FrozenDomainModel):
+    band: ExitMultipleBand
+    metric_type: ValuationMetric
+    value: float = Field(gt=0)
+    evidence_type: ExitMultipleEvidenceSource
+    source_reference: str
+    as_of: datetime
+    rationale: str
 
 
 class ValuationAssumptionSet(FrozenDomainModel):
@@ -332,15 +373,53 @@ class ValuationAssumptionSet(FrozenDomainModel):
     case: AnalysisCase
     required_return_sensitivities: tuple[float, ...] = (0.10, 0.15, 0.20)
     default_required_return: float = 0.15
+    horizon_years: int = Field(gt=0)
     terminal_stage: TerminalStage
-    exit_multiple_range: ExitMultipleRange | None = None
-    exit_multiple_evidence: frozenset[ExitMultipleEvidenceSource] = frozenset()
+    terminal_stage_rationale: str
+    terminal_stage_confidence: ValuationConfidence
+    primary_metric: ValuationMetric
+    exit_multiples: tuple[ExitMultipleAssumption, ...]
+    plausible_growth_range: AssumptionRange | None = None
+    expected_annual_dilution: float | None = None
+    target_gross_margin: float | None = None
+    target_operating_margin: float | None = None
+    terminal_net_debt: float | None = None
     notes: tuple[str, ...] = ()
 
     @model_validator(mode="after")
     def validate_required_return(self) -> Self:
+        if set(self.required_return_sensitivities) != {0.10, 0.15, 0.20}:
+            raise ValueError("required return sensitivities must be 10%, 15%, and 20%")
         if self.default_required_return not in self.required_return_sensitivities:
             raise ValueError("default required return must be in sensitivity set")
+        bands = [multiple.band for multiple in self.exit_multiples]
+        if len(bands) != len(set(bands)):
+            raise ValueError("exit multiple bands must be unique")
+        if set(bands) != set(ExitMultipleBand):
+            raise ValueError("conservative, base, and premium multiples are required")
+        if any(
+            multiple.metric_type != self.primary_metric
+            for multiple in self.exit_multiples
+        ):
+            raise ValueError("exit multiple metric must match configured primary metric")
+        if (
+            self.case == AnalysisCase.CASE_1_PROFITABLE_GROWTH
+            and self.plausible_growth_range is None
+        ):
+            raise ValueError("Case 1 requires a versioned plausible growth range")
+        if self.case == AnalysisCase.CASE_2_EMERGING_ASYMMETRIC_GROWTH:
+            if self.expected_annual_dilution is None or self.terminal_net_debt is None:
+                raise ValueError("Case 2 requires dilution and terminal net debt assumptions")
+            if (
+                self.primary_metric == ValuationMetric.EV_GROSS_PROFIT
+                and self.target_gross_margin is None
+            ):
+                raise ValueError("EV/GP requires a target gross margin assumption")
+            if (
+                self.primary_metric == ValuationMetric.EV_EBIT
+                and self.target_operating_margin is None
+            ):
+                raise ValueError("EV/EBIT requires a target operating margin assumption")
         return self
 
 
@@ -402,6 +481,7 @@ class ValuationSnapshot(TemporalSnapshot):
 
 
 class InvestmentGradeAdjustment(FrozenDomainModel):
+    sequence: int = Field(ge=1)
     adjustment_type: AdjustmentType
     trigger: InvestmentGradeTrigger
     active: bool
@@ -424,6 +504,13 @@ class InvestmentGradeSnapshot(TemporalSnapshot):
     adjustments: tuple[InvestmentGradeAdjustment, ...] = ()
     thesis_breaker_active: bool = False
     rationale: str | None = None
+
+    @model_validator(mode="after")
+    def validate_adjustment_order(self) -> Self:
+        sequences = [adjustment.sequence for adjustment in self.adjustments]
+        if sequences != sorted(sequences) or len(sequences) != len(set(sequences)):
+            raise ValueError("Investment Grade adjustments must have unique sequence order")
+        return self
 
 
 class SnapshotChange(FrozenDomainModel):
