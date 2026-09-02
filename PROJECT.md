@@ -1,9 +1,201 @@
 # Youngrich Engine — Project Handoff
 
-> **Project:** 주식으로 파이어 프로젝트  
-> **Repository:** `shindonghoooon/youngrich-engine`  
-> **Document Date:** 2026-09-01  
-> **Status:** Case 1 v1 Frozen / Case 2 Design & Calibration in progress
+> **Project:** 주식으로 파이어 프로젝트
+> **Repository:** `shindonghoooon/youngrich-engine`
+> **Document Date:** 2026-09-02
+> **Status:** Case 1 v1 Frozen / Case 2 v1 Frozen / Tracking Schema v0.1
+
+---
+
+# 0. Authoritative v1 Decisions
+
+This section is the current source of truth. Later Case 2 historical validation notes
+explain how the design evolved; any `candidate`, `provisional`, or `not frozen` wording
+in those notes is superseded by this section.
+
+## Frozen status
+
+```text
+Case 1 Profitable Growth Quant v1
+→ FROZEN
+
+Case 1 Current Trend Overlay v1
+→ FROZEN
+
+Case 2 Emerging / Asymmetric Growth Quant v1
+→ FROZEN
+```
+
+Do not change existing Case 1 thresholds, weights, or formulas. Frozen logic may be
+reopened only after repeated failure across multiple companies or realized-performance
+evidence of systematic failure.
+
+## Case 2 Quant v1
+
+| Metric | Weight |
+|---|---:|
+| Revenue Growth | 30% |
+| Gross Profit Growth | 15% |
+| Cash Burn Trend | 15% |
+| Runway | 15% |
+| Dilution | 15% |
+| Revenue / Share Growth | 10% |
+
+Supporting observations:
+
+- Gross Margin Trend
+- Incremental Operating Margin
+- Potential Dilution
+- Growth Scope
+
+Guardrail:
+
+```text
+Cash Burn X AND Dilution X
+→ Quant Grade maximum D
+```
+
+Growth Scope:
+
+- `SAME_SCOPE`
+- `PRO_FORMA_COMPARABLE`
+- `ACQUISITION_INFLUENCED`
+- `UNRESOLVED`
+
+## Case 2 Narrative v1
+
+Dimensions:
+
+- Differentiation
+- Defensibility
+- Adoption
+- Penetration / Expansion
+- Durability
+- Failure Mode
+
+States:
+
+- `PROVEN`
+- `STRONG`
+- `EMERGING`
+- `WEAK`
+- `UNRESOLVED`
+
+Narrative is linked to a versioned Thesis Definition and a versioned Tracking KPI set.
+It never changes Quant.
+
+## Case 2 Current Trend v1
+
+Signals:
+
+- Revenue Momentum
+- Gross Profit Momentum
+- Cash Burn Momentum
+- Funding / Runway
+- Thesis KPI Momentum
+
+Flags:
+
+- `COMMERCIAL_INFLECTION`
+- `FUNDING_STRESS`
+- `COMMERCIAL_DETERIORATION`
+
+Aggregation:
+
+```text
+resolved signals < 4
+→ UNRESOLVED
+
+positive >= 4 and negative = 0
+→ STRONG_POSITIVE
+
+positive >= 2 and negative >= 2
+→ MIXED
+
+positive >= 3 and negative <= 1
+→ POSITIVE
+
+negative >= 3 and positive <= 1
+→ NEGATIVE
+
+otherwise
+→ NEUTRAL
+```
+
+Current Trend is a direction classification, not a weighted score.
+
+## Common Valuation v1
+
+- Required Growth / Market-implied Expectations
+- Required Return sensitivity: 10%, 15%, 20%; default 15%
+- Terminal Stage: `GROWTH`, `TRANSITION`, `MATURE`
+- Exit Multiple evidence: company history, comparable companies, and
+  business/capital model benchmark
+- Conservative / Base / Premium exit ranges
+- Expectation Gap
+- Bear / Base / Bull
+- Downside Severity
+- Upside Optionality
+- Asymmetry Type
+- Valuation Confidence
+
+Valuation assumptions are versioned. A price-only update creates a new valuation output
+without mutating the assumption version. Price movement alone must not change exit,
+growth, required-return, or terminal-stage assumptions.
+
+## Investment Grade v1
+
+Allowed grades:
+
+```text
+A / B / C / D / X / U
+```
+
+Use the valuation result as the initial grade. Quant, Current Trend, Narrative, Funding
+Stress, Commercial Inflection, Valuation Confidence, and Thesis Breaker are explicit
+gates or caps. Do **not** implement a weighted-average Investment Grade.
+
+## Historical look-ahead and price timing
+
+```text
+financial_information.available_at <= analysis.as_of
+valuation_information.available_at <= analysis.as_of
+```
+
+`period_end`, `available_at`, and `as_of` are separate. Historical price snapshots use
+the first executable market price after all required information became public. Never
+combine a year-end market price with later-released annual results.
+
+## Tracking Schema v0.1
+
+The versioned Pydantic contracts are in `engine/tracking_models.py`:
+
+- `AnalysisSnapshot`
+- `QuantSnapshot`
+- `MetricResult`
+- `CurrentTrendSnapshot`
+- `NarrativeSnapshot`
+- `ThesisDefinition`
+- `TrackingKPIDefinition`
+- `TrackingKPIObservation`
+- `ThesisStatusSnapshot`
+- `ValuationSnapshot`
+- `InvestmentGradeSnapshot`
+- `SnapshotDiff`
+- `PerformanceSnapshot`
+
+Invariants:
+
+- Analysis snapshots are immutable historical records and are never overwritten.
+- Thesis definitions, KPI sets, and valuation assumptions are versioned.
+- Narrative KPI sets cannot silently change between periods.
+- Price-only changes preserve the valuation assumption version.
+- `available_at > as_of` fails validation.
+- `unresolved` never silently becomes zero.
+- Models support Case 1 and Case 2 without company-specific fields.
+
+This stabilization does not implement dashboard/frontend/PWA, real-time price APIs,
+alerts, scheduled ingestion, full database persistence, Case 3+, or new investment metrics.
 
 ---
 
@@ -633,9 +825,10 @@ Historical backtest에서도 동일.
 
 ## STATUS
 
-**DESIGN / CALIBRATION IN PROGRESS**
+**FROZEN v1**
 
-아직 Frozen이 아니다.
+Case 2의 operative v1 구조는 Section 0에 고정한다. 아래 historical discussion은
+설계 선택의 배경이며 현재 규칙을 변경하지 않는다.
 
 초기에는 `Loss-making Growth`라는 이름으로 설계했으나 현재 철학은 더 좁고 명확하다.
 
@@ -680,7 +873,7 @@ Case 2에서는 Narrative와 Asymmetry의 중요도가 Case 1보다 크다.
 
 ---
 
-# 20. Case 2 Eligibility — Current Candidate
+# 20. Case 2 Eligibility — Historical Design Context
 
 기본적으로:
 
@@ -717,7 +910,7 @@ Revenue Growth에 현재 hard cutoff는 두지 않는다.
 
 ---
 
-# 21. Case 2 Current Quant Direction
+# 21. Case 2 Quant Design History (Superseded)
 
 기존에는 8 Core를 실험했다.
 
@@ -741,15 +934,16 @@ Historical Winner/Failure validation 결과:
 - 특히 Incremental Operating Margin 20%가 초기 성장주를 지나치게 누를 가능성이 있음
 - GP/share는 Dilution과 중복성이 큼
 
-따라서 이 8 Core는 **현재 Frozen 구조가 아니다.**
+따라서 이 8 Core 실험안은 폐기되었고 현재 Frozen 구조가 아니다. Section 0의
+6 Core가 frozen v1이다.
 
 ---
 
-# 22. Case 2 Simplified Quant Candidate
+# 22. Case 2 Simplified Quant v1 — Frozen
 
-현재 가장 유력한 방향:
+Frozen v1 구조:
 
-| Area | Metric | Candidate Weight |
+| Area | Metric | Weight |
 |---|---|---:|
 | Growth | **Revenue Growth** | **30%** |
 | Growth Quality | Gross Profit Growth | 15% |
@@ -843,7 +1037,7 @@ Shares +70%
 
 # 25. Gross Margin
 
-Gross Margin은 현재 Core에서 Supporting Signal로 내리는 방향이 유력하다.
+Gross Margin은 Frozen v1에서 Supporting Signal이다.
 
 이유:
 
@@ -899,7 +1093,7 @@ Gross Margin의 절대 수준으로 다른 업종을 비교하지 않는다.
 
 을 적용해야 한다.
 
-그러나 현재는 Core에서 내리는 방향이 유력하다.
+Frozen v1에서는 Core가 아닌 Supporting Signal이다.
 
 이유:
 
@@ -963,7 +1157,8 @@ Cash Burn
 = max(0, -FCF)
 ```
 
-정확한 threshold는 아직 Frozen 아님.
+이 historical normalization section은 threshold를 새로 정의하지 않는다. Frozen
+v1 구조는 Section 0을 따른다.
 
 ---
 
@@ -984,7 +1179,7 @@ Runway
 Liquidity / Annualized Cash Burn
 ```
 
-과거 provisional threshold:
+과거 실험 threshold (operative v1 specification 아님):
 
 ```text
 FCF positive or >=36 months → A
@@ -1027,7 +1222,7 @@ unresolved
 
 X로 처리하지 않는다.
 
-Coverage 개념 도입 여부는 아직 확정 전.
+비교 불가능한 기간은 Tracking Schema v0.1에서 first-class `unresolved`로 보존한다.
 
 ---
 
@@ -1055,7 +1250,7 @@ Revenue Growth
 
 ---
 
-# 31. Narrative Framework Candidate
+# 31. Narrative Framework Design History
 
 ## Technology Moat
 
@@ -1197,7 +1392,7 @@ Quarterly Update
 Thesis Confirming / Weakening / Broken
 ```
 
-이 기능은 Quant 및 Narrative 기본 구조가 Frozen 된 이후 설계한다.
+Tracking Schema v0.1은 이 연결을 위한 versioned Thesis/KPI domain contract를 제공한다.
 
 ---
 
@@ -1478,11 +1673,12 @@ Current Trend Overlay
 
 구조가 필요할 가능성이 매우 높다.
 
-Case 2 Current Overlay는 아직 설계하지 않았다.
+Case 2 Current Trend v1의 signal/flag/aggregation domain은 Section 0에 frozen되어 있다.
+실제 계산 엔진은 이 documentation/domain stabilization 범위에서 구현하지 않는다.
 
 ---
 
-# 40. Case 2 Grade Interpretation — Provisional Lesson
+# 40. Case 2 Grade Interpretation — Historical Lesson
 
 Historical validation 과정에서:
 
@@ -1518,7 +1714,8 @@ Large Asymmetry
 
 이면 매우 좋은 투자 후보가 될 수 있다.
 
-하지만 이 Grade semantics 역시 Simplified Quant가 확정된 이후 최종 결정한다.
+Investment Grade는 Section 0의 valuation-initial, gate/cap 구조로 별도 관리하며
+Quant와 가중평균하지 않는다.
 
 ---
 
@@ -1532,7 +1729,7 @@ Quality Compounder condition 및 fallback 논리.
 
 현재 원칙:
 
-> Case 2가 확정되기 전 Router를 성급하게 최적화하지 않는다.
+> Frozen Case 1/2 domain을 이유로 Router를 성급하게 확장하지 않는다.
 
 특히:
 
@@ -1548,7 +1745,8 @@ Quality Compounder
 
 # 42. Valuation
 
-현재 미구현.
+Common Valuation v1 domain contract는 Section 0과 `engine/tracking_models.py`에
+정의되어 있다. Valuation calculation engine은 아직 구현하지 않는다.
 
 Valuation은 Quant와 분리한다.
 
@@ -1570,13 +1768,16 @@ Case 5
 Normalized earnings / FCF / assets
 ```
 
-Valuation architecture는 Case 1 / Case 2 기본 구조 이후 설계한다.
+Required Growth, required-return sensitivity, terminal stage, exit-range evidence,
+Expectation Gap, Bear/Base/Bull, downside/upside, asymmetry, confidence와 versioned
+assumptions가 공통 v1 구조다.
 
 ---
 
 # 43. Investment Grade
 
-아직 미구현.
+Investment Grade v1 domain contract는 구현했지만 grade calculation engine은 아직
+구현하지 않는다.
 
 장기 구조:
 
@@ -1598,7 +1799,9 @@ Tracking Evidence
 Investment Grade
 ```
 
-Investment Grade는 매수/보유/관찰/회피 의사결정에 가까운 최종 등급이다.
+Investment Grade는 `A/B/C/D/X/U`를 사용한다. Valuation 결과를 initial grade로
+사용하고 다른 layer는 명시적 gate/cap으로만 반영한다. weighted-average 방식은
+금지한다.
 
 ---
 
@@ -1652,6 +1855,23 @@ Annual Quant Engine
 
 Current Trend Overlay
 → Frozen v1
+```
+
+Case 2:
+
+```text
+Emerging / Asymmetric Growth Quant
+→ Frozen v1 domain specification
+
+Narrative / Current Trend / Valuation / Investment Grade
+→ v1 domain contracts stabilized; calculation engines deferred
+```
+
+Tracking:
+
+```text
+Tracking Schema v0.1
+→ immutable/versioned Pydantic domain models implemented
 ```
 
 관련 주요 commits:
@@ -1794,41 +2014,41 @@ Case 1 Current Trend
 ██████████ 100%
 Frozen
 
-Case 2 Quant Concept
-████████░░ ~80%
-Simplified direction selected
-Not Frozen
+Case 2 Quant v1
+██████████ 100%
+Frozen v1 domain specification
 
 Case 2 Narrative
-██████░░░░
-Concept defined
-Scoring not defined
+██████████ 100%
+v1 domain contract frozen
 
 Case 2 Current Trend
-░░░░░░░░░░
-Not designed
+██████████ 100%
+v1 signal/flag/aggregation contract frozen
 
 Case 2 Asymmetry
-██░░░░░░░░
-Concept only
+████████░░
+Common Valuation v1 domain stabilized
 
 Valuation
-░░░░░░░░░░
+████░░░░░░
+Domain contract only; calculation deferred
 
 Investment Grade
-░░░░░░░░░░
+████░░░░░░
+Domain contract only; calculation deferred
 
 Tracking KPI Engine
-██░░░░░░░░
-Concept defined
-Implementation later
+██████░░░░
+Schema v0.1 implemented; persistence/dashboard deferred
 ```
 
 ---
 
-# 50. NEXT STEP
+# 50. Historical Case 2 Freeze Step — Completed
 
-다음 작업은 Case 2를 더 복잡하게 만드는 것이 아니다.
+아래 historical-basket 재검증 단계는 Case 2 Quant v1 freeze 과정에서 완료된
+설계 기록이다. 현재 next step이 아니다.
 
 우선 현재 Simplified Candidate:
 
@@ -1861,19 +2081,19 @@ Revenue / Share Growth   10%
    다른 Business Model에서도 작동하는가?
 ```
 
-결과가 자연스러우면:
+이 검증 결과를 반영해:
 
 ```text
-Case 2 Quant v1 Freeze
+Case 2 Quant v1 Frozen
 ```
 
 로 간다.
 
 ---
 
-# 51. AFTER Case 2 Quant Freeze
+# 51. Post-Freeze Roadmap
 
-순서:
+Domain stabilization 이후의 구현 순서:
 
 ```text
 1. Case 2 Narrative Framework

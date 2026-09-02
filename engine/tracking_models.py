@@ -1,0 +1,523 @@
+"""Versioned domain models for historical analysis and tracking snapshots.
+
+These models define storage contracts only. They do not implement or change any
+Case 1 or Case 2 scoring, valuation, or investment-grade decision rule.
+"""
+
+from __future__ import annotations
+
+from datetime import date, datetime
+from enum import Enum
+from typing import Self
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from engine.models import CapitalModel, Grade, Trend
+
+
+class FrozenDomainModel(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+
+class TemporalSnapshot(FrozenDomainModel):
+    period_end: date
+    available_at: datetime
+    as_of: datetime
+
+    @model_validator(mode="after")
+    def validate_information_timing(self) -> Self:
+        if self.period_end > self.available_at.date():
+            raise ValueError("period_end cannot be later than available_at")
+        if self.available_at > self.as_of:
+            raise ValueError("available_at cannot be later than as_of")
+        return self
+
+
+class AnalysisCase(str, Enum):
+    CASE_1_PROFITABLE_GROWTH = "case1_profitable_growth"
+    CASE_2_EMERGING_ASYMMETRIC_GROWTH = (
+        "case2_emerging_asymmetric_growth"
+    )
+
+
+class ResolutionState(str, Enum):
+    RESOLVED = "resolved"
+    UNRESOLVED = "unresolved"
+
+
+class NarrativeState(str, Enum):
+    PROVEN = "proven"
+    STRONG = "strong"
+    EMERGING = "emerging"
+    WEAK = "weak"
+    UNRESOLVED = "unresolved"
+
+
+class DirectionState(str, Enum):
+    STRONG_POSITIVE = "strong_positive"
+    POSITIVE = "positive"
+    NEUTRAL = "neutral"
+    NEGATIVE = "negative"
+    MIXED = "mixed"
+    UNRESOLVED = "unresolved"
+
+
+class TrendFlag(str, Enum):
+    COMMERCIAL_INFLECTION = "commercial_inflection"
+    FUNDING_STRESS = "funding_stress"
+    COMMERCIAL_DETERIORATION = "commercial_deterioration"
+
+
+class GrowthScope(str, Enum):
+    SAME_SCOPE = "same_scope"
+    PRO_FORMA_COMPARABLE = "pro_forma_comparable"
+    ACQUISITION_INFLUENCED = "acquisition_influenced"
+    UNRESOLVED = "unresolved"
+
+
+class InvestmentGrade(str, Enum):
+    A = "A"
+    B = "B"
+    C = "C"
+    D = "D"
+    X = "X"
+    U = "U"
+
+
+class TerminalStage(str, Enum):
+    GROWTH = "growth"
+    TRANSITION = "transition"
+    MATURE = "mature"
+
+
+class ValuationConfidence(str, Enum):
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+    UNRESOLVED = "unresolved"
+
+
+class ExpectationGap(str, Enum):
+    POSITIVE = "positive"
+    NEUTRAL = "neutral"
+    NEGATIVE = "negative"
+    UNRESOLVED = "unresolved"
+
+
+class AsymmetryType(str, Enum):
+    FAVORABLE = "favorable"
+    BALANCED = "balanced"
+    UNFAVORABLE = "unfavorable"
+    BINARY = "binary"
+    UNRESOLVED = "unresolved"
+
+
+class ThesisStatus(str, Enum):
+    CONFIRMING = "confirming"
+    STABLE = "stable"
+    WEAKENING = "weakening"
+    BROKEN = "broken"
+    UNRESOLVED = "unresolved"
+
+
+class AdjustmentType(str, Enum):
+    GATE = "gate"
+    CAP = "cap"
+
+
+class InvestmentGradeTrigger(str, Enum):
+    QUANT = "quant"
+    CURRENT_TREND = "current_trend"
+    NARRATIVE = "narrative"
+    FUNDING_STRESS = "funding_stress"
+    COMMERCIAL_INFLECTION = "commercial_inflection"
+    VALUATION_CONFIDENCE = "valuation_confidence"
+    THESIS_BREAKER = "thesis_breaker"
+
+
+class ExitMultipleEvidenceSource(str, Enum):
+    COMPANY_HISTORY = "company_history"
+    COMPARABLE_COMPANIES = "comparable_companies"
+    BUSINESS_CAPITAL_MODEL_BENCHMARK = "business_capital_model_benchmark"
+
+
+class MetricResult(FrozenDomainModel):
+    name: str
+    state: ResolutionState
+    value: float | str | bool | None = None
+    unit: str | None = None
+    grade: Grade | None = None
+    trend: Trend = Trend.NA
+    weight: float = Field(default=0.0, ge=0, le=1)
+    is_core: bool = True
+    supporting_tags: tuple[str, ...] = ()
+    note: str | None = None
+
+    @model_validator(mode="after")
+    def validate_resolution(self) -> Self:
+        if not self.is_core and self.weight != 0:
+            raise ValueError("supporting metric weight must be zero")
+        if self.state == ResolutionState.UNRESOLVED:
+            if self.value is not None or self.grade is not None:
+                raise ValueError("unresolved metric cannot have a value or grade")
+        elif self.value is None:
+            raise ValueError("resolved metric requires a value")
+        return self
+
+
+class GradeCap(FrozenDomainModel):
+    trigger: str
+    maximum_grade: Grade
+    active: bool
+    reason: str
+
+
+class QuantSnapshot(TemporalSnapshot):
+    snapshot_id: str
+    ticker: str
+    case: AnalysisCase
+    model_version: str
+    metrics: tuple[MetricResult, ...]
+    state: ResolutionState
+    score: float | None = None
+    grade: Grade | None = None
+    grade_caps: tuple[GradeCap, ...] = ()
+    growth_scope: GrowthScope | None = None
+
+    @model_validator(mode="after")
+    def validate_quant_contract(self) -> Self:
+        names = [metric.name for metric in self.metrics]
+        if len(names) != len(set(names)):
+            raise ValueError("metric names must be unique within a QuantSnapshot")
+        core_weight = sum(metric.weight for metric in self.metrics if metric.is_core)
+        if abs(core_weight - 1.0) > 1e-9:
+            raise ValueError("core metric weights must sum to 1.0")
+        if self.state == ResolutionState.UNRESOLVED:
+            if self.score is not None or self.grade is not None:
+                raise ValueError("unresolved QuantSnapshot cannot have score or grade")
+        elif self.score is None or self.grade is None:
+            raise ValueError("resolved QuantSnapshot requires score and grade")
+        return self
+
+
+class CurrentTrendSignal(FrozenDomainModel):
+    name: str
+    state: DirectionState
+    observation: str | None = None
+
+
+class CurrentTrendSnapshot(TemporalSnapshot):
+    snapshot_id: str
+    ticker: str
+    case: AnalysisCase
+    model_version: str
+    signals: tuple[CurrentTrendSignal, ...]
+    overall: DirectionState
+    flags: frozenset[TrendFlag] = frozenset()
+
+    @model_validator(mode="after")
+    def validate_signal_names(self) -> Self:
+        names = [signal.name for signal in self.signals]
+        if len(names) != len(set(names)):
+            raise ValueError("current signal names must be unique")
+        return self
+
+
+class NarrativeAssessment(FrozenDomainModel):
+    dimension: str
+    state: NarrativeState
+    evidence: tuple[str, ...] = ()
+    note: str | None = None
+
+
+class NarrativeSnapshot(TemporalSnapshot):
+    snapshot_id: str
+    ticker: str
+    case: AnalysisCase
+    model_version: str
+    thesis_id: str
+    thesis_version: int = Field(ge=1)
+    kpi_set_version: int = Field(ge=1)
+    kpi_definition_ids: tuple[str, ...]
+    assessments: tuple[NarrativeAssessment, ...]
+    overall: NarrativeState
+
+    @model_validator(mode="after")
+    def validate_narrative_contract(self) -> Self:
+        if len(self.kpi_definition_ids) != len(set(self.kpi_definition_ids)):
+            raise ValueError("narrative KPI definition ids must be unique")
+        dimensions = [assessment.dimension for assessment in self.assessments]
+        if len(dimensions) != len(set(dimensions)):
+            raise ValueError("narrative dimensions must be unique")
+        return self
+
+
+class ThesisDefinition(FrozenDomainModel):
+    thesis_id: str
+    version: int = Field(ge=1)
+    case: AnalysisCase
+    title: str
+    thesis: str
+    failure_mode: str
+    kpi_set_version: int = Field(ge=1)
+    kpi_definition_ids: tuple[str, ...]
+    effective_from: datetime
+
+    @model_validator(mode="after")
+    def validate_kpi_definition_ids(self) -> Self:
+        if len(self.kpi_definition_ids) != len(set(self.kpi_definition_ids)):
+            raise ValueError("thesis KPI definition ids must be unique")
+        return self
+
+
+class TrackingKPIDefinition(FrozenDomainModel):
+    kpi_definition_id: str
+    thesis_id: str
+    thesis_version: int = Field(ge=1)
+    kpi_set_version: int = Field(ge=1)
+    name: str
+    unit: str
+    source_requirement: str
+    confirming_condition: str
+    weakening_condition: str
+    breaker_condition: str | None = None
+
+
+class TrackingKPIObservation(TemporalSnapshot):
+    observation_id: str
+    ticker: str
+    kpi_definition_id: str
+    thesis_version: int = Field(ge=1)
+    kpi_set_version: int = Field(ge=1)
+    state: ResolutionState
+    value: float | str | bool | None = None
+    source_reference: str | None = None
+    note: str | None = None
+
+    @model_validator(mode="after")
+    def validate_observation_resolution(self) -> Self:
+        if self.state == ResolutionState.UNRESOLVED and self.value is not None:
+            raise ValueError("unresolved KPI observation cannot have a value")
+        if self.state == ResolutionState.RESOLVED and self.value is None:
+            raise ValueError("resolved KPI observation requires a value")
+        return self
+
+
+class ThesisStatusSnapshot(TemporalSnapshot):
+    snapshot_id: str
+    ticker: str
+    thesis_id: str
+    thesis_version: int = Field(ge=1)
+    kpi_set_version: int = Field(ge=1)
+    observation_ids: tuple[str, ...]
+    status: ThesisStatus
+    note: str | None = None
+
+
+class ExitMultipleRange(FrozenDomainModel):
+    conservative: float = Field(gt=0)
+    base: float = Field(gt=0)
+    premium: float = Field(gt=0)
+
+    @model_validator(mode="after")
+    def validate_order(self) -> Self:
+        if not self.conservative <= self.base <= self.premium:
+            raise ValueError("exit multiple range must be conservative <= base <= premium")
+        return self
+
+
+class ValuationAssumptionSet(FrozenDomainModel):
+    assumption_set_id: str
+    version: int = Field(ge=1)
+    case: AnalysisCase
+    required_return_sensitivities: tuple[float, ...] = (0.10, 0.15, 0.20)
+    default_required_return: float = 0.15
+    terminal_stage: TerminalStage
+    exit_multiple_range: ExitMultipleRange | None = None
+    exit_multiple_evidence: frozenset[ExitMultipleEvidenceSource] = frozenset()
+    notes: tuple[str, ...] = ()
+
+    @model_validator(mode="after")
+    def validate_required_return(self) -> Self:
+        if self.default_required_return not in self.required_return_sensitivities:
+            raise ValueError("default required return must be in sensitivity set")
+        return self
+
+
+class ValuationOutput(FrozenDomainModel):
+    required_growth: float | None = None
+    expectation_gap: ExpectationGap = ExpectationGap.UNRESOLVED
+    bear_value: float | None = None
+    base_value: float | None = None
+    bull_value: float | None = None
+    downside_severity: str | None = None
+    upside_optionality: str | None = None
+    asymmetry_type: AsymmetryType = AsymmetryType.UNRESOLVED
+    confidence: ValuationConfidence = ValuationConfidence.UNRESOLVED
+
+
+class ValuationSnapshot(TemporalSnapshot):
+    snapshot_id: str
+    ticker: str
+    assumption_set: ValuationAssumptionSet
+    state: ResolutionState
+    market_price: float = Field(gt=0)
+    output: ValuationOutput
+
+    @model_validator(mode="after")
+    def validate_resolution(self) -> Self:
+        if self.state == ResolutionState.UNRESOLVED:
+            values = (
+                self.output.required_growth,
+                self.output.bear_value,
+                self.output.base_value,
+                self.output.bull_value,
+            )
+            if any(value is not None for value in values):
+                raise ValueError("unresolved valuation cannot contain numeric outputs")
+        return self
+
+    def reprice(
+        self,
+        *,
+        snapshot_id: str,
+        period_end: date,
+        available_at: datetime,
+        as_of: datetime,
+        market_price: float,
+        output: ValuationOutput,
+    ) -> "ValuationSnapshot":
+        """Create a price-only snapshot while preserving assumption identity/version."""
+        return ValuationSnapshot(
+            snapshot_id=snapshot_id,
+            ticker=self.ticker,
+            period_end=period_end,
+            available_at=available_at,
+            as_of=as_of,
+            assumption_set=self.assumption_set,
+            state=self.state,
+            market_price=market_price,
+            output=output,
+        )
+
+
+class InvestmentGradeAdjustment(FrozenDomainModel):
+    adjustment_type: AdjustmentType
+    trigger: InvestmentGradeTrigger
+    active: bool
+    maximum_grade: InvestmentGrade | None = None
+    reason: str
+
+    @model_validator(mode="after")
+    def validate_cap(self) -> Self:
+        if self.adjustment_type == AdjustmentType.CAP and self.maximum_grade is None:
+            raise ValueError("cap adjustment requires maximum_grade")
+        return self
+
+
+class InvestmentGradeSnapshot(TemporalSnapshot):
+    snapshot_id: str
+    ticker: str
+    model_version: str
+    initial_valuation_grade: InvestmentGrade
+    final_grade: InvestmentGrade
+    adjustments: tuple[InvestmentGradeAdjustment, ...] = ()
+    thesis_breaker_active: bool = False
+    rationale: str | None = None
+
+
+class SnapshotChange(FrozenDomainModel):
+    field: str
+    previous: str | int | float | bool | None = None
+    current: str | int | float | bool | None = None
+
+
+class SnapshotDiff(FrozenDomainModel):
+    previous_snapshot_id: str
+    current_snapshot_id: str
+    previous_kpi_set_version: int = Field(ge=1)
+    current_kpi_set_version: int = Field(ge=1)
+    previous_kpi_definition_ids: tuple[str, ...]
+    current_kpi_definition_ids: tuple[str, ...]
+    narrative_kpi_set_changed: bool
+    changes: tuple[SnapshotChange, ...] = ()
+
+    @model_validator(mode="after")
+    def prevent_silent_narrative_kpi_change(self) -> Self:
+        ids_changed = (
+            self.previous_kpi_definition_ids
+            != self.current_kpi_definition_ids
+        )
+        version_changed = (
+            self.previous_kpi_set_version != self.current_kpi_set_version
+        )
+        if ids_changed and not version_changed:
+            raise ValueError("narrative KPI ids changed without a kpi_set_version change")
+        if ids_changed != self.narrative_kpi_set_changed:
+            raise ValueError("narrative_kpi_set_changed must match the KPI id change")
+        return self
+
+
+class ExecutablePriceSnapshot(FrozenDomainModel):
+    information_available_at: datetime
+    executable_at: datetime
+    price: float = Field(gt=0)
+    source_reference: str
+
+    @model_validator(mode="after")
+    def validate_execution_timing(self) -> Self:
+        if self.executable_at < self.information_available_at:
+            raise ValueError(
+                "executable price cannot precede required information availability"
+            )
+        return self
+
+
+class PerformanceSnapshot(TemporalSnapshot):
+    snapshot_id: str
+    ticker: str
+    analysis_snapshot_id: str
+    entry_price: ExecutablePriceSnapshot
+    current_price: float = Field(gt=0)
+    total_return: float | None = None
+    return_1m: float | None = None
+    return_3m: float | None = None
+    return_6m: float | None = None
+    return_1y: float | None = None
+    max_drawdown: float | None = None
+
+
+class AnalysisSnapshot(TemporalSnapshot):
+    snapshot_id: str
+    ticker: str
+    company_name: str
+    case: AnalysisCase
+    case_definition_version: str
+    capital_model: CapitalModel | None = None
+    quant: QuantSnapshot
+    current_trend: CurrentTrendSnapshot | None = None
+    narrative: NarrativeSnapshot | None = None
+    thesis_status: ThesisStatusSnapshot | None = None
+    valuation: ValuationSnapshot | None = None
+    investment_grade: InvestmentGradeSnapshot | None = None
+
+    @model_validator(mode="after")
+    def validate_component_identity_and_timing(self) -> Self:
+        components = (
+            self.quant,
+            self.current_trend,
+            self.narrative,
+            self.thesis_status,
+            self.valuation,
+            self.investment_grade,
+        )
+        for component in components:
+            if component is None:
+                continue
+            if component.ticker != self.ticker:
+                raise ValueError("component ticker must match AnalysisSnapshot ticker")
+            if component.available_at > self.as_of:
+                raise ValueError("component available_at cannot be later than analysis as_of")
+        if self.quant.case != self.case:
+            raise ValueError("QuantSnapshot case must match AnalysisSnapshot case")
+        return self
