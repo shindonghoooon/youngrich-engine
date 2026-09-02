@@ -140,6 +140,7 @@ class InvestmentGradeTrigger(str, Enum):
     NARRATIVE = "narrative"
     FUNDING_STRESS = "funding_stress"
     COMMERCIAL_INFLECTION = "commercial_inflection"
+    COMMERCIAL_DETERIORATION = "commercial_deterioration"
     VALUATION_CONFIDENCE = "valuation_confidence"
     THESIS_BREAKER = "thesis_breaker"
 
@@ -227,7 +228,11 @@ class QuantSnapshot(TemporalSnapshot):
                 raise ValueError("unresolved QuantSnapshot cannot have score or grade")
         elif self.score is None or self.grade is None:
             raise ValueError("resolved QuantSnapshot requires score and grade")
-        if self.coverage < 1.0 and not self.provisional:
+        if (
+            self.state == ResolutionState.RESOLVED
+            and self.coverage < 1.0
+            and not self.provisional
+        ):
             raise ValueError("partial metric coverage must be marked provisional")
         return self
 
@@ -246,6 +251,8 @@ class CurrentTrendSnapshot(TemporalSnapshot):
     signals: tuple[CurrentTrendSignal, ...]
     overall: DirectionState
     flags: frozenset[TrendFlag] = frozenset()
+    growth_scope: GrowthScope | None = None
+    annual_quant_grade_reference: Grade | None = None
 
     @model_validator(mode="after")
     def validate_signal_names(self) -> Self:
@@ -402,11 +409,8 @@ class ValuationAssumptionSet(FrozenDomainModel):
             for multiple in self.exit_multiples
         ):
             raise ValueError("exit multiple metric must match configured primary metric")
-        if (
-            self.case == AnalysisCase.CASE_1_PROFITABLE_GROWTH
-            and self.plausible_growth_range is None
-        ):
-            raise ValueError("Case 1 requires a versioned plausible growth range")
+        if self.plausible_growth_range is None:
+            raise ValueError("a versioned plausible growth range is required")
         if self.case == AnalysisCase.CASE_2_EMERGING_ASYMMETRIC_GROWTH:
             if self.expected_annual_dilution is None or self.terminal_net_debt is None:
                 raise ValueError("Case 2 requires dilution and terminal net debt assumptions")
@@ -425,6 +429,8 @@ class ValuationAssumptionSet(FrozenDomainModel):
 
 class ValuationOutput(FrozenDomainModel):
     required_growth: float | None = None
+    required_growth_range: AssumptionRange | None = None
+    required_growth_cases: tuple["RequiredGrowthCase", ...] = ()
     expectation_gap: ExpectationGap = ExpectationGap.UNRESOLVED
     bear_value: float | None = None
     base_value: float | None = None
@@ -435,16 +441,31 @@ class ValuationOutput(FrozenDomainModel):
     confidence: ValuationConfidence = ValuationConfidence.UNRESOLVED
 
 
+class RequiredGrowthCase(FrozenDomainModel):
+    band: ExitMultipleBand
+    exit_multiple: float = Field(gt=0)
+    required_growth: float
+    required_future_equity_value: float | None = None
+    required_future_enterprise_value: float | None = None
+    required_future_revenue: float | None = None
+
+
 class ValuationSnapshot(TemporalSnapshot):
     snapshot_id: str
     ticker: str
     assumption_set: ValuationAssumptionSet
     state: ResolutionState
-    market_price: float = Field(gt=0)
+    market_price: float | None = Field(default=None, gt=0)
+    market_cap: float | None = Field(default=None, gt=0)
     output: ValuationOutput
 
     @model_validator(mode="after")
     def validate_resolution(self) -> Self:
+        if self.assumption_set.case == AnalysisCase.CASE_1_PROFITABLE_GROWTH:
+            if self.market_price is None:
+                raise ValueError("Case 1 valuation requires market_price")
+        elif self.market_cap is None:
+            raise ValueError("Case 2 valuation requires market_cap")
         if self.state == ResolutionState.UNRESOLVED:
             values = (
                 self.output.required_growth,
@@ -476,6 +497,7 @@ class ValuationSnapshot(TemporalSnapshot):
             assumption_set=self.assumption_set,
             state=self.state,
             market_price=market_price,
+            market_cap=self.market_cap,
             output=output,
         )
 

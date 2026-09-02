@@ -1,0 +1,30 @@
+{
+  "ticker": "ONDS", "company_name": "Ondas Inc.", "analysis_as_of": "2026-09-01T16:00:00-04:00", "unit": "USD thousands except shares and per-share price",
+  "sources": {
+    "annual": {"source": "SEC 2025 Form 10-K", "url": "https://www.sec.gov/Archives/edgar/data/1646188/000121390026035981/ea0282911-10k_ondas.htm", "source_date": "2026-03-31", "available_at": "2026-03-31T16:30:00-04:00"},
+    "current": {"source": "SEC 2026 Q2 Form 10-Q", "url": "https://www.sec.gov/Archives/edgar/data/1646188/000119312526349288/onds-20260630.htm", "source_date": "2026-08-13", "available_at": "2026-08-13T16:30:00-04:00"},
+    "prior_current": {"source": "Official Q2 2025 supplemental filing", "url": "https://www.sec.gov/Archives/edgar/data/1646188/000121390025074654/ea025264901ex99-2_ondas.htm", "source_date": "2025-08-12", "available_at": "2025-08-12T08:35:13-04:00"},
+    "price": {"source": "StockScan historical price", "url": "https://stockscan.io/stocks/ONDS/price-history", "source_date": "2026-09-01", "available_at": "2026-09-01T16:00:00-04:00"}
+  },
+  "annual": {
+    "period_end": "2025-12-31", "source_id": "annual", "growth_scope": "acquisition_influenced", "core_revenue_representative": true, "commercial_evidence_exists": true, "share_comparison_valid": true,
+    "normalization_note": "Reported GAAP values. Growth CAPEX is equipment plus software purchases and excludes acquisition consideration and securities. Liquidity is cash plus unrestricted short-term investments. Acquired businesses contributed materially to 2025 growth.",
+    "retrieved_fields": ["revenue", "gross profit", "operating loss", "operating cash flow", "equipment purchases", "software purchases", "cash", "short-term investments", "common shares outstanding"],
+    "periods": [
+      {"fiscal_year": 2023, "fiscal_period_end": "2023-12-31", "revenue": 15691.430, "gross_profit": 6381.174, "operating_income": -29439, "cfo": -34019.519, "growth_capex": 1423, "liquidity": null, "actual_common_shares": null},
+      {"fiscal_year": 2024, "fiscal_period_end": "2024-12-31", "revenue": 7193, "gross_profit": 345.183, "operating_income": -34609, "cfo": -33469.623, "growth_capex": 1697, "liquidity": 30206, "actual_common_shares": 93173191},
+      {"fiscal_year": 2025, "fiscal_period_end": "2025-12-31", "revenue": 50731, "gross_profit": 20156, "operating_income": -58384, "cfo": -38746, "growth_capex": 2072, "liquidity": 572494, "actual_common_shares": 380763481}
+    ]
+  },
+  "current": {
+    "period_end": "2026-06-30", "source_id": "current", "growth_scope": "acquisition_influenced", "normalization_note": "Six-month GAAP comparable periods. Share growth uses June 30 actual shares, with the prior count cross-checked to the official supplemental roll-forward.",
+    "retrieved_fields": ["six-month revenue", "gross profit", "operating cash flow", "PP&E and software purchases", "cash", "short-term investments", "common shares outstanding", "orders", "backlog", "repeat orders"],
+    "current_revenue": 133894, "prior_revenue": 10522, "current_gross_profit": 60789, "prior_gross_profit": 4821,
+    "current_cfo": -137379, "current_growth_capex": 9093, "prior_cfo": -15063, "prior_growth_capex": 267,
+    "current_liquidity": 1384493, "current_actual_shares": 529838610, "prior_actual_shares": 206732666,
+    "primary_kpi_states": ["positive", "positive", "neutral"]
+  },
+  "narrative": {"source_id": "current", "thesis_version": 1, "kpi_set_version": 1, "commercial_evidence_exists": true, "thesis_breaker_triggered": false, "normalization_note": "Manual analyst-input states reflect visible adoption but acquisition scope, customer concentration and funding dependence.", "axes": {"differentiation": "strong", "defensibility": "emerging", "adoption": "emerging", "penetration_expansion": "strong", "durability": "emerging", "failure_mode": "weak"}},
+  "market": {"source_id": "price", "close": 7.04, "shares_for_market_cap": 529838610, "normalization_note": "Regular-session close times latest official actual shares; USD thousands after division by 1,000."},
+  "valuation": {"assumption_set_id": "ONDS-validation_case2_2026_09_v1", "horizon_years": 5, "required_return": 0.15, "expected_annual_dilution": 0.15, "terminal_stage": "growth", "primary_metric": "ev_revenue", "exit_multiples": [3.0, 5.0, 7.0], "plausible_growth_range": [0.35, 0.55], "terminal_net_debt": 0, "credible_evidence_count": 2, "terminal_stage_confidence": "medium", "economics_stable": false, "economics_rapidly_changing": true, "asymmetry_type": "unfavorable", "rationale": "Validation-only range; acquisition scope, concentration and extreme equity issuance make economics rapidly changing."}
+}

@@ -1,0 +1,31 @@
+{
+  "ticker": "IONQ", "company_name": "IonQ, Inc.", "analysis_as_of": "2026-09-01T16:00:00-04:00", "unit": "USD thousands except shares and per-share price",
+  "sources": {
+    "annual": {"source": "SEC 2025 Form 10-K", "url": "https://www.sec.gov/Archives/edgar/data/1824920/000119312526071562/ionq-20251231.htm", "source_date": "2026-02-25", "available_at": "2026-02-25T16:30:00-05:00"},
+    "current": {"source": "SEC 2026 Q2 Form 10-Q", "url": "https://www.sec.gov/Archives/edgar/data/1824920/000119312526341001/ionq-20260630.htm", "source_date": "2026-08-10", "available_at": "2026-08-10T16:30:00-04:00"},
+    "prior_current": {"source": "SEC 2025 Q2 Form 10-Q", "url": "https://www.sec.gov/Archives/edgar/data/1824920/000095017025104066/ionq-20250630.htm", "source_date": "2025-08-06", "available_at": "2025-08-06T16:30:00-04:00"},
+    "price": {"source": "StockAnalysis historical price (S&P Global Market Intelligence)", "url": "https://stockanalysis.com/stocks/ionq/history/", "source_date": "2026-09-01", "available_at": "2026-09-01T16:00:00-04:00"}
+  },
+  "annual": {
+    "period_end": "2025-12-31", "source_id": "annual", "growth_scope": "acquisition_influenced", "core_revenue_representative": true, "commercial_evidence_exists": true, "share_comparison_valid": true,
+    "normalization_note": "Reported revenue; gross profit is revenue less reported cost of revenue excluding D&A. Growth CAPEX uses the filing's PP&E cash outflow; capitalized internal-use software additions are not separately double-subtracted because no distinct investing cash outflow is reported. Liquidity excludes long-term investments. 2025 acquisitions make growth acquisition-influenced.",
+    "retrieved_fields": ["revenue", "cost of revenue excluding depreciation and amortization", "loss from operations", "net cash used in operating activities", "purchases of property and equipment", "cash and cash equivalents", "short-term investments", "common shares outstanding"],
+    "periods": [
+      {"fiscal_year": 2023, "fiscal_period_end": "2023-12-31", "revenue": 22042, "gross_profit": 13934, "operating_income": -157754, "cfo": -78811, "growth_capex": 13703, "liquidity": null, "actual_common_shares": 206611704},
+      {"fiscal_year": 2024, "fiscal_period_end": "2024-12-31", "revenue": 43073, "gross_profit": 22476, "operating_income": -232455, "cfo": -105683, "growth_capex": 17992, "liquidity": 363817, "actual_common_shares": 221919191},
+      {"fiscal_year": 2025, "fiscal_period_end": "2025-12-31", "revenue": 130016, "gross_profit": 52528, "operating_income": -633715, "cfo": -283187, "growth_capex": 16417, "liquidity": 2392156, "actual_common_shares": 362592722}
+    ]
+  },
+  "current": {
+    "period_end": "2026-06-30", "source_id": "current", "growth_scope": "acquisition_influenced",
+    "normalization_note": "Six-month GAAP comparable periods. PP&E cash purchases are used consistently as disclosed Growth CAPEX. Actual shares compare June 30 balance-sheet counts from the 2026 and 2025 10-Qs, not EPS denominators.",
+    "retrieved_fields": ["six-month revenue", "cost of revenue excluding D&A", "operating cash flow", "PP&E purchases", "cash", "short-term investments", "June 30 common shares", "commercial revenue mix", "remaining performance obligations", "multi-product adoption"],
+    "current_revenue": 144718, "prior_revenue": 28260, "current_gross_profit": 35354, "prior_gross_profit": 15618,
+    "current_cfo": -254781, "current_growth_capex": 18583, "prior_cfo": -85599, "prior_growth_capex": 3501,
+    "current_liquidity": 2118969, "current_actual_shares": 381044481, "prior_actual_shares": 269600132,
+    "primary_kpi_states": ["positive", "positive", "positive"]
+  },
+  "narrative": {"source_id": "current", "thesis_version": 1, "kpi_set_version": 1, "commercial_evidence_exists": true, "thesis_breaker_triggered": false, "normalization_note": "Manual analyst-input states; acquisition-influenced growth and execution risk keep durability below strong.", "axes": {"differentiation": "proven", "defensibility": "strong", "adoption": "strong", "penetration_expansion": "strong", "durability": "emerging", "failure_mode": "emerging"}},
+  "market": {"source_id": "price", "close": 37.78, "shares_for_market_cap": 381044481, "normalization_note": "Regular-session close times latest official actual shares; USD thousands after division by 1,000."},
+  "valuation": {"assumption_set_id": "IONQ-validation_case2_2026_09_v1", "horizon_years": 5, "required_return": 0.15, "expected_annual_dilution": 0.10, "terminal_stage": "growth", "primary_metric": "ev_revenue", "exit_multiples": [6.0, 10.0, 14.0], "plausible_growth_range": [0.35, 0.55], "terminal_net_debt": 0, "credible_evidence_count": 2, "terminal_stage_confidence": "medium", "economics_stable": false, "economics_rapidly_changing": true, "asymmetry_type": "unfavorable", "rationale": "Validation-only range spanning high-growth quantum comparables; rapid M&A and immature unit economics limit confidence."}
+}

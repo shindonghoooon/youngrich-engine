@@ -1757,7 +1757,8 @@ Quality Compounder
 # 42. Valuation
 
 Common Valuation v1 domain contract는 Section 0과 `engine/tracking_models.py`에
-정의되어 있다. Valuation calculation engine은 아직 구현하지 않는다.
+정의되어 있다. Pure calculation은 `engine/valuation_engine.py`가 담당하며 market
+price/market cap을 입력으로만 받는다. 실시간 가격 조회는 구현하지 않는다.
 
 Valuation은 Quant와 분리한다.
 
@@ -1787,8 +1788,9 @@ assumptions가 공통 v1 구조다.
 
 # 43. Investment Grade
 
-Investment Grade v1 domain contract는 구현했지만 grade calculation engine은 아직
-구현하지 않는다.
+Investment Grade v1 domain contract와 pure grade calculation은 구현되어 있다.
+`engine/investment_grade_engine.py`는 upstream Quant/Current/Narrative/Valuation 결과만
+소비하며 이를 내부에서 다시 계산하지 않는다.
 
 장기 구조:
 
@@ -1872,10 +1874,10 @@ Case 2:
 
 ```text
 Emerging / Asymmetric Growth Quant
-→ Frozen v1 domain specification
+→ Frozen v1 specification + pure calculation engine
 
 Narrative / Current Trend / Valuation / Investment Grade
-→ v1 domain contracts stabilized; calculation engines deferred
+→ frozen v1 contracts + deterministic pure calculation engines
 ```
 
 Tracking:
@@ -2027,27 +2029,27 @@ Frozen
 
 Case 2 Quant v1
 ██████████ 100%
-Frozen v1 domain specification
+Frozen v1 + pure calculation engine
 
 Case 2 Narrative
 ██████████ 100%
-v1 domain contract frozen
+v1 domain contract + categorical gate engine
 
 Case 2 Current Trend
 ██████████ 100%
-v1 signal/flag/aggregation contract frozen
+v1 signal/flag/aggregation contract + pure engine
 
 Case 2 Asymmetry
-████████░░
-Common Valuation v1 domain stabilized
+██████████ 100%
+Common Valuation v1 required-growth engine
 
 Valuation
-████░░░░░░
-Domain contract only; calculation deferred
+██████████ 100%
+Case 1 PE and Case 2 terminal-stage calculations implemented
 
 Investment Grade
-████░░░░░░
-Domain contract only; calculation deferred
+██████████ 100%
+Global precedence and deterministic gate/cap engine implemented
 
 Tracking KPI Engine
 ██████░░░░

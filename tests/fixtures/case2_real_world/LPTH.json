@@ -1,0 +1,30 @@
+{
+  "ticker": "LPTH", "company_name": "LightPath Technologies, Inc.", "analysis_as_of": "2026-09-01T16:00:00-04:00", "unit": "USD thousands except shares and per-share price",
+  "sources": {
+    "annual": {"source": "SEC fiscal 2025 Form 10-K", "url": "https://www.sec.gov/Archives/edgar/data/889971/000165495425011130/lpth_10k.htm", "source_date": "2025-09-29", "available_at": "2025-09-29T16:30:00-04:00"},
+    "current": {"source": "SEC fiscal 2026 Q3 Form 10-Q", "url": "https://www.sec.gov/Archives/edgar/data/889971/000143774926015594/lpth20260331_10q.htm", "source_date": "2026-05-07", "available_at": "2026-05-07T16:30:00-04:00"},
+    "prior_current": {"source": "SEC fiscal 2025 Q3 Form 10-Q", "url": "https://www.sec.gov/Archives/edgar/data/889971/000165495425005945/lpth_10q.htm", "source_date": "2025-05-20", "available_at": "2025-05-20T16:03:22-04:00"},
+    "price": {"source": "Investing.com historical regular-session data", "url": "https://www.investing.com/equities/lightpath-technologies-inc-historical-data", "source_date": "2026-09-01", "available_at": "2026-09-01T16:00:00-04:00"}
+  },
+  "annual": {
+    "period_end": "2025-06-30", "source_id": "annual", "growth_scope": "same_scope", "core_revenue_representative": true, "commercial_evidence_exists": true, "share_comparison_valid": true,
+    "normalization_note": "Audited fiscal-year GAAP data. Growth CAPEX is PP&E cash purchases. 2023 revenue and gross profit are the same consolidated business scope disclosed in the 10-K comparison tables.",
+    "retrieved_fields": ["revenue", "gross profit", "operating loss", "net cash used in/provided by operating activities", "purchase of property and equipment", "cash", "Class A shares issued and outstanding"],
+    "periods": [
+      {"fiscal_year": 2023, "fiscal_period_end": "2023-06-30", "revenue": 32933.949, "gross_profit": 11074.823, "operating_income": -6201, "cfo": -382, "growth_capex": 2101, "liquidity": null, "actual_common_shares": null},
+      {"fiscal_year": 2024, "fiscal_period_end": "2024-06-30", "revenue": 31726.192, "gross_profit": 8631.246, "operating_income": -7826.664, "cfo": 521.037, "growth_capex": 2182.805, "liquidity": 3480.268, "actual_common_shares": 39254643},
+      {"fiscal_year": 2025, "fiscal_period_end": "2025-06-30", "revenue": 37202.630, "gross_profit": 10130.114, "operating_income": -11822.881, "cfo": -8331.390, "growth_capex": 1262.302, "liquidity": 4877.036, "actual_common_shares": 42949307}
+    ]
+  },
+  "current": {
+    "period_end": "2026-03-31", "source_id": "current", "growth_scope": "acquisition_influenced", "normalization_note": "Nine-month GAAP comparison is preferred over quarter-only data. G5 Infrared and later acquisitions affect scope. Share growth uses comparable filing cover-page actual shares, not weighted-average EPS shares.",
+    "retrieved_fields": ["nine-month revenue", "gross profit", "operating cash flow", "PP&E purchases", "cash", "cover-page Class A shares", "backlog", "infrared revenue", "assemblies and systems revenue"],
+    "current_revenue": 50559.747, "prior_revenue": 24992.837, "current_gross_profit": 17459.185, "prior_gross_profit": 7439.361,
+    "current_cfo": -5116.579, "current_growth_capex": 1844.395, "prior_cfo": -5681.447, "prior_growth_capex": 580.726,
+    "current_liquidity": 55235.181, "current_actual_shares": 62789407, "prior_actual_shares": 42898936,
+    "primary_kpi_states": ["positive", "positive", "neutral"]
+  },
+  "narrative": {"source_id": "current", "thesis_version": 1, "kpi_set_version": 1, "commercial_evidence_exists": true, "thesis_breaker_triggered": false, "normalization_note": "Manual analyst-input states recognize defense/infrared differentiation and adoption while durability remains acquisition- and concentration-sensitive.", "axes": {"differentiation": "strong", "defensibility": "emerging", "adoption": "strong", "penetration_expansion": "strong", "durability": "emerging", "failure_mode": "emerging"}},
+  "market": {"source_id": "price", "close": 9.47, "shares_for_market_cap": 62789407, "normalization_note": "Regular-session close times latest official actual shares; USD thousands after division by 1,000."},
+  "valuation": {"assumption_set_id": "LPTH-validation_case2_2026_09_v1", "horizon_years": 5, "required_return": 0.15, "expected_annual_dilution": 0.08, "terminal_stage": "growth", "primary_metric": "ev_revenue", "exit_multiples": [2.0, 3.0, 4.0], "plausible_growth_range": [0.20, 0.35], "terminal_net_debt": 0, "credible_evidence_count": 1, "terminal_stage_confidence": "low", "economics_stable": false, "economics_rapidly_changing": true, "asymmetry_type": "balanced", "rationale": "Validation-only range; recent acquisitions and customer concentration warrant low confidence."}
+}

@@ -5,9 +5,9 @@
 Tracking Schema v0.1 is the immutable, versioned domain contract for future tracking,
 persistence, reporting, and dashboard work. It lives in `engine/tracking_models.py`.
 
-It does not implement a database, dashboard, ingestion scheduler, price API, valuation
-calculation, Case 2 scoring calculation, or Investment Grade calculation. It does not
-change any frozen Case 1 rule.
+It does not implement a database, dashboard, ingestion scheduler, or price API. Pure
+Case 2 Quant/Current/Narrative, Common Valuation, and Investment Grade calculations
+compose this schema without changing any frozen Case 1 rule.
 
 ## Snapshot time semantics
 
@@ -47,8 +47,19 @@ combined with an earlier year-end price.
 | `PerformanceSnapshot` | Returns/drawdown tied to an analysis and executable entry price |
 
 Supporting contracts include `ValuationAssumptionSet`, `ExitMultipleAssumption`,
-`ValuationOutput`, `NarrativeGate`, `InvestmentGradeAdjustment`, `GradeCap`, and
-`ExecutablePriceSnapshot`.
+`ValuationOutput`, `RequiredGrowthCase`, `NarrativeGate`, `InvestmentGradeAdjustment`,
+`GradeCap`, and `ExecutablePriceSnapshot`.
+
+## Pure calculation modules
+
+- `engine/case2_quant.py`: normalized annual inputs to Case 2 Core 6 `QuantSnapshot`
+- `engine/narrative_engine.py`: categorical NarrativeSnapshot to Narrative Gate
+- `engine/case2_current.py`: comparable current inputs to `CurrentTrendSnapshot`
+- `engine/valuation_engine.py`: Case 1/2 required growth and `ValuationSnapshot`
+- `engine/investment_grade_engine.py`: upstream outputs to recorded gates/caps
+- `engine/case2_analysis.py`: thin composition into immutable `AnalysisSnapshot`
+
+These modules fetch no external data and perform no persistence.
 
 ## Immutability and versioning
 

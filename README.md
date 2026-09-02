@@ -77,8 +77,9 @@ streamlit run dashboard/app.py
 - [x] Financial Input / Normalization Layer v1 (STRL)
 - [x] Current Trend Overlay v1 (STRL Q2/H1 2026 validation)
 - [ ] Router v1 calibration
-- [ ] Valuation engine
-- [ ] Narrative evaluation format
-- [ ] Case 2–6 engines
+- [x] Common Valuation v1 pure calculation engine (Case 1 PE; Case 2 EV/Revenue, EV/GP, EV/EBIT)
+- [x] Case 2 Narrative v1 categorical gate derivation
+- [x] Case 2 Quant / Current Trend / Investment Grade v1 pure engines
+- [ ] Case 3–6 engines
 - [ ] Performance tracking / backtest
 - [ ] Automated 1-page report

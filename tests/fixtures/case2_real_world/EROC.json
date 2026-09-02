@@ -1,0 +1,29 @@
+{
+  "ticker": "EROC", "company_name": "ERock, Inc.", "analysis_as_of": "2026-09-01T16:00:00-04:00", "unit": "USD thousands except shares and per-share price",
+  "sources": {
+    "annual": {"source": "SEC IPO prospectus / S-1/A predecessor financials", "url": "https://www.sec.gov/Archives/edgar/data/2110029/000119312526258942/d12401ds1a.htm", "source_date": "2026-06-05", "available_at": "2026-06-05T16:30:00-04:00"},
+    "current": {"source": "SEC 2026 Q2 Form 10-Q", "url": "https://www.sec.gov/Archives/edgar/data/2110029/000119312526346922/eroc-20260630.htm", "source_date": "2026-08-12", "available_at": "2026-08-12T16:30:00-04:00"},
+    "price": {"source": "ChartExchange NYSE at-close history", "url": "https://chartexchange.com/symbol/nyse-eroc/historical/", "source_date": "2026-09-01", "available_at": "2026-09-01T16:00:00-04:00"}
+  },
+  "annual": {
+    "period_end": "2025-12-31", "source_id": "annual", "growth_scope": "unresolved", "core_revenue_representative": null, "commercial_evidence_exists": true, "share_comparison_valid": false,
+    "normalization_note": "ERock, Inc. was formed in January 2026; the prospectus presents predecessor results but no third comparable annual observation for the registrant and no comparable public-company actual-share series. Missing values remain null, so Annual Quant is intentionally unresolved.",
+    "retrieved_fields": ["predecessor total revenues", "total gross profit", "loss from operations", "operating cash flow", "capital expenditures", "cash and cash equivalents"],
+    "periods": [
+      {"fiscal_year": 2023, "fiscal_period_end": "2023-12-31", "revenue": null, "gross_profit": null, "operating_income": null, "cfo": null, "growth_capex": null, "liquidity": null, "actual_common_shares": null},
+      {"fiscal_year": 2024, "fiscal_period_end": "2024-12-31", "revenue": 128490, "gross_profit": 15351, "operating_income": -42570, "cfo": -24210, "growth_capex": 9000, "liquidity": 21910, "actual_common_shares": null},
+      {"fiscal_year": 2025, "fiscal_period_end": "2025-12-31", "revenue": 183145, "gross_profit": 34001, "operating_income": -34790, "cfo": 116500, "growth_capex": 4670, "liquidity": 108097, "actual_common_shares": null}
+    ]
+  },
+  "current": {
+    "period_end": "2026-06-30", "source_id": "current", "growth_scope": "unresolved", "normalization_note": "Six-month predecessor-comparable GAAP results. Customer-deposit-driven operating cash flow is preserved without adjustment. Actual share growth is unresolved because the IPO/reorganization has no comparable prior-period registrant share base.",
+    "retrieved_fields": ["six-month total revenues", "total gross profit", "operating cash flow", "capital expenditures", "cash", "restricted cash", "Class A and Class B shares", "installed base MW", "annualized recurring service revenue"],
+    "current_revenue": 71614, "prior_revenue": 92566, "current_gross_profit": 12624, "prior_gross_profit": 17863,
+    "current_cfo": 268939, "current_growth_capex": 8835, "prior_cfo": 436, "prior_growth_capex": 2411,
+    "current_liquidity": 660861, "current_actual_shares": 219400080, "prior_actual_shares": null,
+    "primary_kpi_states": ["positive", "negative"]
+  },
+  "narrative": {"source_id": "current", "thesis_version": 1, "kpi_set_version": 1, "commercial_evidence_exists": true, "thesis_breaker_triggered": false, "normalization_note": "Manual analyst-input states reflect installed-base and service evidence, offset by weak reported conversion and concentrated/project-shaped revenue.", "axes": {"differentiation": "strong", "defensibility": "emerging", "adoption": "emerging", "penetration_expansion": "emerging", "durability": "emerging", "failure_mode": "weak"}},
+  "market": {"source_id": "price", "close": 11.41, "shares_for_market_cap": 219400080, "normalization_note": "NYSE regular-session close times June 30 actual Class A plus Class B shares; USD thousands after division by 1,000."},
+  "valuation": {"assumption_set_id": "EROC-validation_case2_2026_09_v1", "horizon_years": 5, "required_return": 0.15, "expected_annual_dilution": 0.10, "terminal_stage": "growth", "primary_metric": "ev_revenue", "exit_multiples": [2.0, 4.0, 6.0], "plausible_growth_range": [0.20, 0.40], "terminal_net_debt": 0, "credible_evidence_count": 0, "terminal_stage_confidence": "low", "economics_stable": false, "economics_rapidly_changing": true, "asymmetry_type": "binary", "rationale": "Validation-only placeholder range; zero credible exit-multiple evidence intentionally forces valuation confidence and Investment Grade unresolved."}
+}
