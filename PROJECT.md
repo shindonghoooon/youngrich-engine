@@ -3,7 +3,7 @@
 > **Project:** 주식으로 파이어 프로젝트
 > **Repository:** `shindonghoooon/youngrich-engine`
 > **Document Date:** 2026-09-02
-> **Status:** Case 1 v1 Frozen / Case 2 v1 Frozen / Tracking Engine v1 checkpointed / Persistence Phase 1 implemented
+> **Status:** Case 1 v1 Frozen / Case 2 v1 Frozen / Persistence Phase 1 checkpointed / Performance Engine Phase 1 stabilized
 
 ---
 
@@ -22,6 +22,7 @@ Detailed authoritative specifications:
 - [Investment Grade v1](docs/investment-grade-v1.md)
 - [Tracking Engine v1 Phase 1](docs/tracking-engine-v1.md)
 - [Persistence Phase 1](docs/persistence-v1.md)
+- [Performance Engine Phase 1](docs/performance-engine-v1.md)
 
 The detailed files own formulas, thresholds, and edge cases. This handoff document owns
 the high-level architecture and frozen status; avoid copying new formula variants here.
@@ -1895,7 +1896,11 @@ Tracking Engine v1 Phase 1
 Persistence Phase 1
 → SQLAlchemy/Alembic append-only schema, explicit mappers, and repositories implemented
 
-Providers / dashboard / alerts / Performance Engine
+Performance Engine Phase 1
+→ adjusted-price horizons, MDD completeness, comparable benchmark alpha, persistence,
+  and cohort analytics implemented
+
+Providers / dashboard / alerts
 → deferred
 ```
 
@@ -1916,6 +1921,9 @@ Case2 calculation engines + five-company golden validation
 
 9566d9f
 Price-aware Tracking Engine + thesis engine checkpoint
+
+5f9d341
+Immutable investment persistence layer checkpoint
 ```
 
 당시:
@@ -2081,7 +2089,12 @@ Persistence Phase 1
 ██████████ 100%
 Append-only SQLAlchemy schema, Alembic baseline, mappers, and repositories implemented
 
-Providers / dashboard / alerts / Performance Engine
+Performance Engine Phase 1
+██████████ 100%
+Adjusted-price performance, MDD coverage, comparable benchmark alpha, immutable
+evaluations, and cohorts implemented
+
+Providers / dashboard / alerts
 → deferred
 ```
 

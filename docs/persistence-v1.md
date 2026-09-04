@@ -51,8 +51,8 @@ Prices form an independent instrument time series and need not belong to an anal
 `timestamp` and `created_at` must be timezone-aware at the domain boundary and are
 normalized to UTC for relational ordering. A shared SQLAlchemy UTC type stores a naive
 UTC value only on SQLite and restores it as aware `+00:00`; PostgreSQL uses native
-timezone-aware timestamp semantics. The import key is
-`(instrument_id, timestamp, source, price_type)`. Price must be positive; enterprise
+timezone-aware timestamp semantics. The import key is `(instrument_id, timestamp,
+source, price_type, price_basis, adjustment_version)`. Price must be positive; enterprise
 value may be negative for a net-cash company.
 
 ## Thesis and KPI versions
@@ -110,5 +110,6 @@ not invent missing values for legacy data.
 ## Explicit exclusions
 
 No live feeds, filing fetchers, scheduler, REST API, dashboard, authentication, cloud
-database, alerts, Performance Engine, technical indicators, Case 3+, or new investment
-logic are included.
+database, alerts, technical indicators, Case 3+, or new investment logic are included.
+Performance Phase 1 persistence is limited to immutable benchmark assignments,
+evaluation snapshots, horizon results, MDD coverage metadata, and alpha comparability.

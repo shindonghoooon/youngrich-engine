@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session
 from engine.persistence.mappers import (
     analysis_from_row,
     analysis_to_rows,
+    benchmark_assignment_from_row,
+    benchmark_assignment_to_row,
     company_from_row,
     company_to_row,
     exit_evidence_rows,
@@ -19,6 +21,8 @@ from engine.persistence.mappers import (
     kpi_definition_to_row,
     kpi_observation_from_row,
     kpi_observation_to_row,
+    performance_from_row,
+    performance_to_rows,
     price_from_row,
     price_to_row,
     source_from_row,
@@ -30,6 +34,7 @@ from engine.persistence.mappers import (
 )
 from engine.persistence.models import (
     AnalysisSnapshotRow,
+    BenchmarkAssignmentRow,
     CompanyRow,
     CurrentTrendSignalRow,
     CurrentTrendSnapshotRow,
@@ -39,6 +44,7 @@ from engine.persistence.models import (
     MetricResultRow,
     NarrativeAssessmentRow,
     NarrativeSnapshotRow,
+    PerformanceSnapshotRow,
     PriceSnapshotRow,
     QuantSnapshotRow,
     SourceReferenceRow,
@@ -52,6 +58,8 @@ from engine.persistence.models import (
 from engine.persistence.schemas import Company, Instrument, SourceReference
 from engine.tracking_models import (
     AnalysisSnapshot,
+    BenchmarkAssignment,
+    PerformanceSnapshot,
     PriceSnapshot,
     ThesisDefinition,
     TrackingKPIDefinition,
@@ -145,6 +153,139 @@ class PriceRepository:
             .order_by(PriceSnapshotRow.timestamp, PriceSnapshotRow.price_snapshot_id)
         ).all()
         return tuple(price_from_row(row) for row in rows)
+
+
+class BenchmarkRepository:
+    def __init__(self, session: Session):
+        self.session = session
+
+    def add_benchmark_assignment(self, assignment: BenchmarkAssignment) -> None:
+        if self.session.get(InstrumentRow, assignment.instrument_id) is None:
+            raise ValueError("benchmark assignment instrument_id does not exist")
+        if self.session.get(InstrumentRow, assignment.benchmark_instrument_id) is None:
+            raise ValueError("benchmark instrument_id does not exist")
+        _commit(self.session, benchmark_assignment_to_row(assignment))
+
+    def get_active_benchmark_assignment(
+        self, instrument_id: str, as_of: datetime
+    ) -> BenchmarkAssignment | None:
+        _require_aware(as_of, "as_of")
+        row = self.session.scalar(
+            select(BenchmarkAssignmentRow)
+            .where(
+                BenchmarkAssignmentRow.instrument_id == instrument_id,
+                BenchmarkAssignmentRow.valid_from <= _utc(as_of),
+            )
+            .order_by(
+                BenchmarkAssignmentRow.valid_from.desc(),
+                BenchmarkAssignmentRow.assignment_version.desc(),
+            )
+            .limit(1)
+        )
+        return benchmark_assignment_from_row(row) if row else None
+
+
+class PerformanceRepository:
+    def __init__(self, session: Session):
+        self.session = session
+
+    def add_performance_snapshot(self, snapshot: PerformanceSnapshot) -> None:
+        _require_aware(snapshot.evaluation_as_of, "evaluation_as_of")
+        _require_aware(snapshot.created_at, "created_at")
+        analysis = self.session.get(AnalysisSnapshotRow, snapshot.analysis_snapshot_id)
+        if analysis is None:
+            raise ValueError("performance analysis_snapshot_id does not exist")
+        if analysis.instrument_id != snapshot.instrument_id or analysis.ticker != snapshot.ticker:
+            raise ValueError("performance identity must match its historical analysis")
+        if snapshot.start_price_snapshot_id is not None:
+            start = self.session.get(PriceSnapshotRow, snapshot.start_price_snapshot_id)
+            if start is None or start.instrument_id != snapshot.instrument_id:
+                raise ValueError("performance start price must reference the same instrument")
+            if analysis.price_reference_id != snapshot.start_price_snapshot_id:
+                raise ValueError("performance must use the analysis reference price")
+            if start.price_basis != snapshot.price_basis.value or start.price != snapshot.start_price:
+                raise ValueError("performance start price data must match the referenced row")
+            if start.timestamp > snapshot.evaluation_as_of:
+                raise ValueError("performance start price cannot be after evaluation_as_of")
+        if snapshot.benchmark_assignment_id is not None:
+            assignment = self.session.scalar(select(BenchmarkAssignmentRow).where(
+                BenchmarkAssignmentRow.assignment_id == snapshot.benchmark_assignment_id,
+                BenchmarkAssignmentRow.assignment_version == snapshot.benchmark_assignment_version,
+            ))
+            if assignment is None:
+                raise ValueError("performance benchmark assignment version does not exist")
+            if (
+                assignment.instrument_id != snapshot.instrument_id
+                or assignment.benchmark_instrument_id != snapshot.benchmark_instrument_id
+            ):
+                raise ValueError("performance benchmark references are inconsistent")
+            if snapshot.benchmark_start_price_snapshot_id is not None:
+                benchmark_start = self.session.get(
+                    PriceSnapshotRow, snapshot.benchmark_start_price_snapshot_id
+                )
+                if (
+                    benchmark_start is None
+                    or benchmark_start.instrument_id != snapshot.benchmark_instrument_id
+                    or benchmark_start.price != snapshot.benchmark_start_price
+                    or benchmark_start.price_basis != snapshot.price_basis.value
+                ):
+                    raise ValueError("performance benchmark references are inconsistent")
+        for item in snapshot.horizons:
+            if item.end_price_snapshot_id is not None:
+                end_price = self.session.get(PriceSnapshotRow, item.end_price_snapshot_id)
+                if (
+                    end_price is None
+                    or end_price.instrument_id != snapshot.instrument_id
+                    or end_price.price != item.end_price
+                    or end_price.timestamp > snapshot.evaluation_as_of
+                ):
+                    raise ValueError("performance horizon stock price reference is inconsistent")
+            if item.benchmark_end_price_snapshot_id is not None:
+                benchmark_end = self.session.get(
+                    PriceSnapshotRow, item.benchmark_end_price_snapshot_id
+                )
+                if (
+                    benchmark_end is None
+                    or benchmark_end.instrument_id != snapshot.benchmark_instrument_id
+                    or benchmark_end.price != item.benchmark_end_price
+                    or benchmark_end.timestamp > snapshot.evaluation_as_of
+                ):
+                    raise ValueError("performance horizon benchmark price reference is inconsistent")
+        rows = performance_to_rows(snapshot)
+        try:
+            self.session.add(rows.root)
+            self.session.flush()
+            self.session.add_all(rows.horizons)
+            self.session.commit()
+        except Exception:
+            self.session.rollback()
+            raise
+
+    def list_performance_snapshots(self, analysis_snapshot_id: str) -> tuple[PerformanceSnapshot, ...]:
+        rows = self.session.scalars(
+            select(PerformanceSnapshotRow)
+            .where(PerformanceSnapshotRow.analysis_snapshot_id == analysis_snapshot_id)
+            .order_by(
+                PerformanceSnapshotRow.evaluation_as_of,
+                PerformanceSnapshotRow.created_at,
+                PerformanceSnapshotRow.performance_snapshot_id,
+            )
+        ).all()
+        return tuple(performance_from_row(row) for row in rows)
+
+    def get_latest_performance_snapshot_for_analysis(
+        self, analysis_snapshot_id: str
+    ) -> PerformanceSnapshot | None:
+        row = self.session.scalar(
+            select(PerformanceSnapshotRow)
+            .where(PerformanceSnapshotRow.analysis_snapshot_id == analysis_snapshot_id)
+            .order_by(
+                PerformanceSnapshotRow.evaluation_as_of.desc(),
+                PerformanceSnapshotRow.created_at.desc(),
+            )
+            .limit(1)
+        )
+        return performance_from_row(row) if row else None
 
 
 class ValuationRepository:

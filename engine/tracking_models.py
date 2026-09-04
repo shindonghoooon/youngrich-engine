@@ -68,6 +68,37 @@ class PriceType(str, Enum):
     REALTIME = "realtime"
 
 
+class PriceBasis(str, Enum):
+    RAW = "raw"
+    SPLIT_ADJUSTED = "split_adjusted"
+    TOTAL_RETURN_ADJUSTED = "total_return_adjusted"
+
+
+class PerformanceReturnType(str, Enum):
+    PRICE_RETURN = "price_return"
+    TOTAL_RETURN = "total_return"
+
+
+class PerformanceHorizon(str, Enum):
+    ONE_MONTH = "1m"
+    THREE_MONTHS = "3m"
+    SIX_MONTHS = "6m"
+    ONE_YEAR = "1y"
+
+
+class PriceSeriesCoverageStatus(str, Enum):
+    SUFFICIENT = "sufficient"
+    INSUFFICIENT = "insufficient"
+    UNRESOLVED = "unresolved"
+
+
+class AlphaComparisonIssue(str, Enum):
+    BENCHMARK_UNAVAILABLE = "benchmark_unavailable"
+    RETURN_TYPE_MISMATCH = "return_type_mismatch"
+    START_DATE_MISMATCH = "start_date_mismatch"
+    END_DATE_MISMATCH = "end_date_mismatch"
+
+
 class ValuationChangeType(str, Enum):
     PRICE_ONLY = "price_only"
     ASSUMPTION_CHANGE = "assumption_change"
@@ -422,6 +453,9 @@ class PriceSnapshot(FrozenDomainModel):
     enterprise_value: float | None = None
     source: str
     price_type: PriceType
+    price_basis: PriceBasis = PriceBasis.RAW
+    adjustment_version: str | None = None
+    provider_reference: str | None = None
     analysis_snapshot_id: str | None = None
     created_at: datetime
 
@@ -749,18 +783,220 @@ class ExecutablePriceSnapshot(FrozenDomainModel):
         return self
 
 
-class PerformanceSnapshot(TemporalSnapshot):
-    snapshot_id: str
+class PriceSeriesCoverage(FrozenDomainModel):
+    status: PriceSeriesCoverageStatus
+    observation_count: int = Field(ge=0)
+    first_timestamp: datetime | None = None
+    last_timestamp: datetime | None = None
+    maximum_observed_gap_days: int | None = Field(default=None, ge=0)
+    reason: str | None = None
+
+    @model_validator(mode="after")
+    def validate_coverage(self) -> Self:
+        if self.observation_count == 0:
+            if any(value is not None for value in (self.first_timestamp, self.last_timestamp, self.maximum_observed_gap_days)):
+                raise ValueError("empty coverage cannot contain observed timestamps or gaps")
+        else:
+            if self.first_timestamp is None or self.last_timestamp is None:
+                raise ValueError("observed coverage requires first and last timestamps")
+            for field_name, value in (("first_timestamp", self.first_timestamp), ("last_timestamp", self.last_timestamp)):
+                if value.tzinfo is None or value.utcoffset() is None:
+                    raise ValueError(f"{field_name} must be timezone-aware")
+            if self.last_timestamp < self.first_timestamp:
+                raise ValueError("coverage last_timestamp cannot precede first_timestamp")
+        if self.observation_count >= 2 and self.maximum_observed_gap_days is None:
+            raise ValueError("two or more observations require maximum gap")
+        if self.status == PriceSeriesCoverageStatus.SUFFICIENT and self.observation_count < 2:
+            raise ValueError("sufficient MDD coverage requires at least two observations")
+        if self.status != PriceSeriesCoverageStatus.SUFFICIENT and not self.reason:
+            raise ValueError("non-sufficient coverage requires a reason")
+        return self
+
+
+class HorizonPerformance(FrozenDomainModel):
+    horizon: PerformanceHorizon
+    state: ResolutionState
+    target_date: date
+    end_price_snapshot_id: str | None = None
+    end_price: float | None = Field(default=None, gt=0)
+    stock_return: float | None = None
+    stock_start_effective_date: date | None = None
+    stock_end_effective_date: date | None = None
+    benchmark_end_price_snapshot_id: str | None = None
+    benchmark_end_price: float | None = Field(default=None, gt=0)
+    benchmark_return: float | None = None
+    benchmark_return_type: PerformanceReturnType | None = None
+    benchmark_start_effective_date: date | None = None
+    benchmark_end_effective_date: date | None = None
+    alpha_state: ResolutionState = ResolutionState.UNRESOLVED
+    alpha: float | None = None
+    alpha_unresolved_reason: AlphaComparisonIssue | None = None
+
+    @model_validator(mode="after")
+    def validate_resolution(self) -> Self:
+        stock_fields = (self.end_price_snapshot_id, self.end_price, self.stock_return)
+        if self.state == ResolutionState.UNRESOLVED and any(
+            value is not None for value in stock_fields
+        ):
+            raise ValueError("unresolved horizon cannot contain stock return data")
+        if self.state == ResolutionState.RESOLVED and any(
+            value is None for value in stock_fields
+        ):
+            raise ValueError("resolved horizon requires end price and stock return")
+        if self.state == ResolutionState.RESOLVED and (
+            self.stock_start_effective_date is None or self.stock_end_effective_date is None
+        ):
+            raise ValueError("resolved horizon requires stock effective dates")
+        benchmark_fields = (
+            self.benchmark_end_price_snapshot_id,
+            self.benchmark_end_price,
+            self.benchmark_return,
+            self.benchmark_return_type,
+            self.benchmark_start_effective_date,
+            self.benchmark_end_effective_date,
+        )
+        present = [value is not None for value in benchmark_fields]
+        if self.state == ResolutionState.UNRESOLVED and any(present):
+            raise ValueError("unresolved horizon cannot contain benchmark data")
+        if any(present) and not all(present):
+            raise ValueError("benchmark horizon data must be complete when present")
+        if self.alpha_state == ResolutionState.RESOLVED:
+            if self.alpha is None or not all(present):
+                raise ValueError("resolved alpha requires complete comparable benchmark data")
+            if self.alpha_unresolved_reason is not None:
+                raise ValueError("resolved alpha cannot have an unresolved reason")
+            if self.benchmark_return_type is None:
+                raise ValueError("resolved alpha requires benchmark return type")
+            if self.stock_start_effective_date != self.benchmark_start_effective_date:
+                raise ValueError("resolved alpha requires matching effective start dates")
+            if self.stock_end_effective_date != self.benchmark_end_effective_date:
+                raise ValueError("resolved alpha requires matching effective end dates")
+        elif self.alpha is not None:
+            raise ValueError("unresolved alpha cannot contain a value")
+        if self.alpha_state == ResolutionState.UNRESOLVED and any(present) and self.alpha_unresolved_reason is None:
+            raise ValueError("unresolved alpha with benchmark data requires a structured reason")
+        return self
+
+
+class BenchmarkAssignment(FrozenDomainModel):
+    assignment_id: str
+    instrument_id: str
+    benchmark_instrument_id: str
+    version: int = Field(ge=1)
+    valid_from: datetime
+    rationale: str
+    created_at: datetime
+
+    @model_validator(mode="after")
+    def validate_times(self) -> Self:
+        for field_name, value in (
+            ("valid_from", self.valid_from),
+            ("created_at", self.created_at),
+        ):
+            if value.tzinfo is None or value.utcoffset() is None:
+                raise ValueError(f"{field_name} must be timezone-aware")
+        return self
+
+
+class PerformanceSnapshot(FrozenDomainModel):
+    performance_snapshot_id: str
     ticker: str
     analysis_snapshot_id: str
-    entry_price: ExecutablePriceSnapshot
-    current_price: float = Field(gt=0)
-    total_return: float | None = None
-    return_1m: float | None = None
-    return_3m: float | None = None
-    return_6m: float | None = None
-    return_1y: float | None = None
+    instrument_id: str
+    evaluation_as_of: datetime
+    return_type: PerformanceReturnType
+    price_basis: PriceBasis
+    start_price_snapshot_id: str | None = None
+    start_price: float | None = Field(default=None, gt=0)
+    benchmark_assignment_id: str | None = None
+    benchmark_assignment_version: int | None = Field(default=None, ge=1)
+    benchmark_instrument_id: str | None = None
+    benchmark_return_type: PerformanceReturnType | None = None
+    benchmark_price_basis: PriceBasis | None = None
+    benchmark_start_price_snapshot_id: str | None = None
+    benchmark_start_price: float | None = Field(default=None, gt=0)
+    horizons: tuple[HorizonPerformance, ...]
+    return_since_analysis: float | None = None
     max_drawdown: float | None = None
+    mdd_coverage: PriceSeriesCoverage
+    state: ResolutionState
+    coverage: float = Field(ge=0, le=1)
+    calculation_version: str
+    created_at: datetime
+    note: str | None = None
+
+    @model_validator(mode="after")
+    def validate_performance_contract(self) -> Self:
+        for field_name, value in (
+            ("evaluation_as_of", self.evaluation_as_of),
+            ("created_at", self.created_at),
+        ):
+            if value.tzinfo is None or value.utcoffset() is None:
+                raise ValueError(f"{field_name} must be timezone-aware")
+        horizon_names = [item.horizon for item in self.horizons]
+        if len(horizon_names) != len(set(horizon_names)):
+            raise ValueError("performance horizons must be unique")
+        if set(horizon_names) != set(PerformanceHorizon):
+            raise ValueError("1M, 3M, 6M, and 1Y horizons are required")
+        resolved = sum(item.state == ResolutionState.RESOLVED for item in self.horizons)
+        if abs(self.coverage - resolved / len(PerformanceHorizon)) > 1e-9:
+            raise ValueError("coverage must equal resolved horizons / expected horizons")
+        start_fields = (self.start_price_snapshot_id, self.start_price)
+        if self.state == ResolutionState.UNRESOLVED and any(
+            value is not None for value in start_fields
+        ):
+            raise ValueError("unresolved performance cannot contain a start price")
+        if self.state == ResolutionState.UNRESOLVED and (
+            resolved or self.return_since_analysis is not None or self.max_drawdown is not None
+        ):
+            raise ValueError("unresolved performance cannot contain calculated results")
+        if self.state == ResolutionState.RESOLVED and any(
+            value is None for value in start_fields
+        ):
+            raise ValueError("resolved performance requires the analysis start price")
+        benchmark_identity = (
+            self.benchmark_assignment_id,
+            self.benchmark_assignment_version,
+            self.benchmark_instrument_id,
+            self.benchmark_return_type,
+            self.benchmark_price_basis,
+        )
+        identity_present = [value is not None for value in benchmark_identity]
+        if any(identity_present) and not all(identity_present):
+            raise ValueError("benchmark assignment identity must be complete")
+        benchmark_start = (
+            self.benchmark_start_price_snapshot_id,
+            self.benchmark_start_price,
+        )
+        start_present = [value is not None for value in benchmark_start]
+        if any(start_present) and not all(start_present):
+            raise ValueError("benchmark start price must be complete")
+        if any(start_present) and not all(identity_present):
+            raise ValueError("benchmark start price requires an assignment")
+        if self.price_basis == PriceBasis.RAW and self.state == ResolutionState.RESOLVED:
+            raise ValueError("raw prices are not corporate-action-safe for performance")
+        expected_type = {
+            PriceBasis.SPLIT_ADJUSTED: PerformanceReturnType.PRICE_RETURN,
+            PriceBasis.TOTAL_RETURN_ADJUSTED: PerformanceReturnType.TOTAL_RETURN,
+        }.get(self.price_basis)
+        if self.state == ResolutionState.RESOLVED and self.return_type != expected_type:
+            raise ValueError("return type is incompatible with adjusted price basis")
+        benchmark_expected_type = {
+            PriceBasis.SPLIT_ADJUSTED: PerformanceReturnType.PRICE_RETURN,
+            PriceBasis.TOTAL_RETURN_ADJUSTED: PerformanceReturnType.TOTAL_RETURN,
+        }.get(self.benchmark_price_basis)
+        if self.benchmark_return_type is not None and self.benchmark_return_type != benchmark_expected_type:
+            raise ValueError("benchmark return type is incompatible with its price basis")
+        if self.max_drawdown is not None and self.max_drawdown > 0:
+            raise ValueError("max drawdown must be zero or negative")
+        if self.mdd_coverage.status == PriceSeriesCoverageStatus.SUFFICIENT:
+            if self.max_drawdown is None:
+                raise ValueError("sufficient MDD coverage requires max_drawdown")
+        elif self.max_drawdown is not None:
+            raise ValueError("non-sufficient MDD coverage cannot contain max_drawdown")
+        if self.created_at < self.evaluation_as_of:
+            raise ValueError("created_at cannot precede evaluation_as_of")
+        return self
 
 
 class AnalysisSnapshot(TemporalSnapshot):

@@ -292,7 +292,7 @@ class InvestmentGradeAdjustmentRow(Base):
 
 class PriceSnapshotRow(Base):
     __tablename__ = "price_snapshots"
-    __table_args__ = (UniqueConstraint("instrument_id", "timestamp", "source", "price_type", name="uq_price_import_key"), CheckConstraint("price > 0", name="ck_price_positive"))
+    __table_args__ = (UniqueConstraint("instrument_id", "timestamp", "source", "price_type", "price_basis", "adjustment_version", name="uq_price_import_key"), CheckConstraint("price > 0", name="ck_price_positive"))
     price_snapshot_id: Mapped[str] = mapped_column(String(120), primary_key=True)
     instrument_id: Mapped[str] = mapped_column(ForeignKey("instruments.instrument_id"), nullable=False, index=True)
     timestamp: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False, index=True)
@@ -302,9 +302,89 @@ class PriceSnapshotRow(Base):
     enterprise_value: Mapped[float | None] = mapped_column(Float)
     source: Mapped[str] = mapped_column(String(250), nullable=False)
     price_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    price_basis: Mapped[str] = mapped_column(String(40), nullable=False, default="raw", server_default="raw")
+    adjustment_version: Mapped[str] = mapped_column(String(100), nullable=False, default="", server_default="")
+    provider_reference: Mapped[str | None] = mapped_column(Text)
     analysis_snapshot_id: Mapped[str | None] = mapped_column(ForeignKey("analysis_snapshots.snapshot_id"))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
     payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+
+
+class BenchmarkAssignmentRow(Base):
+    __tablename__ = "benchmark_assignments"
+    __table_args__ = (UniqueConstraint("assignment_id", "assignment_version", name="uq_benchmark_assignment_version"),)
+    benchmark_assignment_row_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    assignment_id: Mapped[str] = mapped_column(String(120), nullable=False)
+    assignment_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    instrument_id: Mapped[str] = mapped_column(ForeignKey("instruments.instrument_id"), nullable=False, index=True)
+    benchmark_instrument_id: Mapped[str] = mapped_column(ForeignKey("instruments.instrument_id"), nullable=False)
+    valid_from: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
+    rationale: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+
+
+class PerformanceSnapshotRow(Base):
+    __tablename__ = "performance_snapshots"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["benchmark_assignment_id", "benchmark_assignment_version"],
+            ["benchmark_assignments.assignment_id", "benchmark_assignments.assignment_version"],
+            name="fk_performance_benchmark_assignment",
+        ),
+    )
+    performance_snapshot_id: Mapped[str] = mapped_column(String(120), primary_key=True)
+    analysis_snapshot_id: Mapped[str] = mapped_column(ForeignKey("analysis_snapshots.snapshot_id"), nullable=False, index=True)
+    instrument_id: Mapped[str] = mapped_column(ForeignKey("instruments.instrument_id"), nullable=False, index=True)
+    evaluation_as_of: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False, index=True)
+    return_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    price_basis: Mapped[str] = mapped_column(String(40), nullable=False)
+    start_price_snapshot_id: Mapped[str | None] = mapped_column(ForeignKey("price_snapshots.price_snapshot_id"))
+    start_price: Mapped[float | None] = mapped_column(Float)
+    benchmark_assignment_id: Mapped[str | None] = mapped_column(String(120))
+    benchmark_assignment_version: Mapped[int | None] = mapped_column(Integer)
+    benchmark_instrument_id: Mapped[str | None] = mapped_column(ForeignKey("instruments.instrument_id"))
+    benchmark_return_type: Mapped[str | None] = mapped_column(String(40))
+    benchmark_price_basis: Mapped[str | None] = mapped_column(String(40))
+    benchmark_start_price_snapshot_id: Mapped[str | None] = mapped_column(ForeignKey("price_snapshots.price_snapshot_id"))
+    benchmark_start_price: Mapped[float | None] = mapped_column(Float)
+    return_since_analysis: Mapped[float | None] = mapped_column(Float)
+    max_drawdown: Mapped[float | None] = mapped_column(Float)
+    mdd_coverage_status: Mapped[str] = mapped_column(String(30), nullable=False)
+    mdd_observation_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    mdd_first_timestamp: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    mdd_last_timestamp: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    mdd_maximum_observed_gap_days: Mapped[int | None] = mapped_column(Integer)
+    resolution_state: Mapped[str] = mapped_column(String(30), nullable=False)
+    coverage: Mapped[float] = mapped_column(Float, nullable=False)
+    calculation_version: Mapped[str] = mapped_column(String(80), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
+    note: Mapped[str | None] = mapped_column(Text)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+
+
+class PerformanceHorizonRow(Base):
+    __tablename__ = "performance_horizons"
+    __table_args__ = (UniqueConstraint("performance_snapshot_id", "horizon", name="uq_performance_horizon"),)
+    performance_horizon_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    performance_snapshot_id: Mapped[str] = mapped_column(ForeignKey("performance_snapshots.performance_snapshot_id", ondelete="CASCADE"), nullable=False, index=True)
+    horizon: Mapped[str] = mapped_column(String(10), nullable=False)
+    resolution_state: Mapped[str] = mapped_column(String(30), nullable=False)
+    target_date: Mapped[date] = mapped_column(Date, nullable=False)
+    end_price_snapshot_id: Mapped[str | None] = mapped_column(ForeignKey("price_snapshots.price_snapshot_id"))
+    end_price: Mapped[float | None] = mapped_column(Float)
+    stock_return: Mapped[float | None] = mapped_column(Float)
+    stock_start_effective_date: Mapped[date | None] = mapped_column(Date)
+    stock_end_effective_date: Mapped[date | None] = mapped_column(Date)
+    benchmark_end_price_snapshot_id: Mapped[str | None] = mapped_column(ForeignKey("price_snapshots.price_snapshot_id"))
+    benchmark_end_price: Mapped[float | None] = mapped_column(Float)
+    benchmark_return: Mapped[float | None] = mapped_column(Float)
+    benchmark_return_type: Mapped[str | None] = mapped_column(String(40))
+    benchmark_start_effective_date: Mapped[date | None] = mapped_column(Date)
+    benchmark_end_effective_date: Mapped[date | None] = mapped_column(Date)
+    alpha_state: Mapped[str] = mapped_column(String(30), nullable=False)
+    alpha: Mapped[float | None] = mapped_column(Float)
+    alpha_unresolved_reason: Mapped[str | None] = mapped_column(String(50))
 
 
 class ThesisDefinitionRow(Base):
@@ -388,7 +468,8 @@ _IMMUTABLE_ROWS = (
     CurrentTrendSnapshotRow, CurrentTrendSignalRow, NarrativeSnapshotRow,
     NarrativeAssessmentRow, ThesisStatusSnapshotRow, ValuationAssumptionRow,
     ExitMultipleEvidenceRow, ValuationSnapshotRow, InvestmentGradeSnapshotRow,
-    InvestmentGradeAdjustmentRow, PriceSnapshotRow, ThesisDefinitionRow,
+    InvestmentGradeAdjustmentRow, PriceSnapshotRow, BenchmarkAssignmentRow,
+    PerformanceSnapshotRow, PerformanceHorizonRow, ThesisDefinitionRow,
     TrackingKPIDefinitionRow, TrackingKPIObservationRow, MaterialEventRow,
 )
 

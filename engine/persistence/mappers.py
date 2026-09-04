@@ -8,6 +8,7 @@ from enum import Enum
 
 from engine.persistence.models import (
     AnalysisSnapshotRow,
+    BenchmarkAssignmentRow,
     CompanyRow,
     CurrentTrendSignalRow,
     CurrentTrendSnapshotRow,
@@ -19,6 +20,8 @@ from engine.persistence.models import (
     MetricResultRow,
     NarrativeAssessmentRow,
     NarrativeSnapshotRow,
+    PerformanceHorizonRow,
+    PerformanceSnapshotRow,
     PriceSnapshotRow,
     QuantSnapshotRow,
     SourceReferenceRow,
@@ -32,6 +35,8 @@ from engine.persistence.models import (
 from engine.persistence.schemas import Company, Instrument, MaterialEvent, SourceReference
 from engine.tracking_models import (
     AnalysisSnapshot,
+    BenchmarkAssignment,
+    PerformanceSnapshot,
     PriceSnapshot,
     ThesisDefinition,
     TrackingKPIDefinition,
@@ -112,6 +117,9 @@ def price_to_row(price: PriceSnapshot, instrument_id: str) -> PriceSnapshotRow:
         enterprise_value=price.enterprise_value,
         source=price.source,
         price_type=price.price_type.value,
+        price_basis=price.price_basis.value,
+        adjustment_version=price.adjustment_version or "",
+        provider_reference=price.provider_reference,
         analysis_snapshot_id=price.analysis_snapshot_id,
         created_at=_utc(price.created_at),
         payload=_payload(price),
@@ -120,6 +128,90 @@ def price_to_row(price: PriceSnapshot, instrument_id: str) -> PriceSnapshotRow:
 
 def price_from_row(row: PriceSnapshotRow) -> PriceSnapshot:
     return PriceSnapshot.model_validate(row.payload)
+
+
+def benchmark_assignment_to_row(item: BenchmarkAssignment) -> BenchmarkAssignmentRow:
+    return BenchmarkAssignmentRow(
+        assignment_id=item.assignment_id,
+        assignment_version=item.version,
+        instrument_id=item.instrument_id,
+        benchmark_instrument_id=item.benchmark_instrument_id,
+        valid_from=_utc(item.valid_from),
+        rationale=item.rationale,
+        created_at=_utc(item.created_at),
+        payload=_payload(item),
+    )
+
+
+def benchmark_assignment_from_row(row: BenchmarkAssignmentRow) -> BenchmarkAssignment:
+    return BenchmarkAssignment.model_validate(row.payload)
+
+
+@dataclass(frozen=True)
+class PerformanceRows:
+    root: PerformanceSnapshotRow
+    horizons: tuple[PerformanceHorizonRow, ...]
+
+
+def performance_to_rows(snapshot: PerformanceSnapshot) -> PerformanceRows:
+    root = PerformanceSnapshotRow(
+        performance_snapshot_id=snapshot.performance_snapshot_id,
+        analysis_snapshot_id=snapshot.analysis_snapshot_id,
+        instrument_id=snapshot.instrument_id,
+        evaluation_as_of=_utc(snapshot.evaluation_as_of),
+        return_type=snapshot.return_type.value,
+        price_basis=snapshot.price_basis.value,
+        start_price_snapshot_id=snapshot.start_price_snapshot_id,
+        start_price=snapshot.start_price,
+        benchmark_assignment_id=snapshot.benchmark_assignment_id,
+        benchmark_assignment_version=snapshot.benchmark_assignment_version,
+        benchmark_instrument_id=snapshot.benchmark_instrument_id,
+        benchmark_return_type=snapshot.benchmark_return_type.value if snapshot.benchmark_return_type else None,
+        benchmark_price_basis=snapshot.benchmark_price_basis.value if snapshot.benchmark_price_basis else None,
+        benchmark_start_price_snapshot_id=snapshot.benchmark_start_price_snapshot_id,
+        benchmark_start_price=snapshot.benchmark_start_price,
+        return_since_analysis=snapshot.return_since_analysis,
+        max_drawdown=snapshot.max_drawdown,
+        mdd_coverage_status=snapshot.mdd_coverage.status.value,
+        mdd_observation_count=snapshot.mdd_coverage.observation_count,
+        mdd_first_timestamp=_utc(snapshot.mdd_coverage.first_timestamp) if snapshot.mdd_coverage.first_timestamp else None,
+        mdd_last_timestamp=_utc(snapshot.mdd_coverage.last_timestamp) if snapshot.mdd_coverage.last_timestamp else None,
+        mdd_maximum_observed_gap_days=snapshot.mdd_coverage.maximum_observed_gap_days,
+        resolution_state=snapshot.state.value,
+        coverage=snapshot.coverage,
+        calculation_version=snapshot.calculation_version,
+        created_at=_utc(snapshot.created_at),
+        note=snapshot.note,
+        payload=_payload(snapshot),
+    )
+    horizons = tuple(
+        PerformanceHorizonRow(
+            performance_snapshot_id=snapshot.performance_snapshot_id,
+            horizon=item.horizon.value,
+            resolution_state=item.state.value,
+            target_date=item.target_date,
+            end_price_snapshot_id=item.end_price_snapshot_id,
+            end_price=item.end_price,
+            stock_return=item.stock_return,
+            stock_start_effective_date=item.stock_start_effective_date,
+            stock_end_effective_date=item.stock_end_effective_date,
+            benchmark_end_price_snapshot_id=item.benchmark_end_price_snapshot_id,
+            benchmark_end_price=item.benchmark_end_price,
+            benchmark_return=item.benchmark_return,
+            benchmark_return_type=item.benchmark_return_type.value if item.benchmark_return_type else None,
+            benchmark_start_effective_date=item.benchmark_start_effective_date,
+            benchmark_end_effective_date=item.benchmark_end_effective_date,
+            alpha_state=item.alpha_state.value,
+            alpha=item.alpha,
+            alpha_unresolved_reason=item.alpha_unresolved_reason.value if item.alpha_unresolved_reason else None,
+        )
+        for item in snapshot.horizons
+    )
+    return PerformanceRows(root=root, horizons=horizons)
+
+
+def performance_from_row(row: PerformanceSnapshotRow) -> PerformanceSnapshot:
+    return PerformanceSnapshot.model_validate(row.payload)
 
 
 def valuation_assumption_to_row(

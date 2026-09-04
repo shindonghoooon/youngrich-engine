@@ -13,24 +13,29 @@ from engine.persistence.models import (
     ExitMultipleEvidenceRow,
     ImmutableRecordError,
     MetricResultRow,
+    PerformanceSnapshotRow,
     ThesisStatusSnapshotRow,
 )
 from engine.persistence.repositories import (
     AnalysisRepository,
+    BenchmarkRepository,
     IdentityRepository,
     PriceRepository,
+    PerformanceRepository,
     SourceRepository,
     ThesisRepository,
     ValuationRepository,
 )
 from engine.persistence.schemas import Company, Instrument, SourceReference
 from engine.persistence.session import create_session_factory, create_sqlite_engine
+from engine.performance_engine import build_performance_snapshot
 from engine.tracking_models import (
     AdjustmentType,
     AnalysisCase,
     AnalysisSnapshot,
     AsymmetryType,
     AssumptionRange,
+    BenchmarkAssignment,
     CurrentTrendSignal,
     CurrentTrendSnapshot,
     DirectionState,
@@ -48,6 +53,9 @@ from engine.tracking_models import (
     NarrativeGate,
     NarrativeSnapshot,
     NarrativeState,
+    PerformanceHorizon,
+    PerformanceReturnType,
+    PriceBasis,
     PriceSnapshot,
     PriceType,
     QuantSnapshot,
@@ -460,3 +468,70 @@ def test_valuation_versions_and_price_only_snapshot_preserve_history(session):
     analysis_repo.add_analysis_snapshot(second, instrument_id="instrument-test", company_id="company-test", created_at=AS_OF + timedelta(days=1))
     assert analysis_repo.get_analysis_snapshot("price-old").valuation.output.base_value == 120
     assert analysis_repo.get_analysis_snapshot("price-new").valuation.assumption_set.version == 1
+
+
+def performance_price(identifier, ticker, timestamp, value):
+    return PriceSnapshot(
+        price_snapshot_id=identifier,
+        ticker=ticker,
+        timestamp=timestamp,
+        price=value,
+        currency="USD",
+        source="offline adjusted fixture",
+        price_type=PriceType.CLOSE,
+        price_basis=PriceBasis.SPLIT_ADJUSTED,
+        adjustment_version="v1",
+        provider_reference="manual fixture",
+        created_at=timestamp + timedelta(minutes=1),
+    )
+
+
+def test_benchmark_assignment_and_performance_snapshots_are_append_only(session):
+    seed_identity(session)
+    identity = IdentityRepository(session)
+    benchmark_company = Company(company_id="company-benchmark", canonical_name="Benchmark", created_at=AS_OF)
+    benchmark_instrument = Instrument(instrument_id="instrument-benchmark", company_id=benchmark_company.company_id, ticker="BENCH", exchange="NYSE", currency="USD")
+    identity.add_company(benchmark_company)
+    identity.add_instrument(benchmark_instrument)
+    assignment = BenchmarkAssignment(assignment_id="explicit-benchmark", instrument_id="instrument-test", benchmark_instrument_id="instrument-benchmark", version=1, valid_from=AS_OF - timedelta(days=1), rationale="explicit configured benchmark", created_at=AS_OF)
+    benchmark_repo = BenchmarkRepository(session)
+    benchmark_repo.add_benchmark_assignment(assignment)
+    assert benchmark_repo.get_active_benchmark_assignment("instrument-test", AS_OF) == assignment
+
+    register_assumption(session)
+    analysis = full_analysis("performance-analysis")
+    AnalysisRepository(session).add_analysis_snapshot(analysis, instrument_id="instrument-test", company_id="company-test", created_at=AS_OF)
+    one_month_at = datetime(2026, 10, 1, 20, tzinfo=UTC)
+    three_month_at = datetime(2026, 12, 1, 20, tzinfo=UTC)
+    stock_prices = (
+        performance_price("performance-analysis-price-reference", "TEST", AS_OF, 100),
+        performance_price("stock-1m", "TEST", one_month_at, 110),
+        performance_price("stock-3m", "TEST", three_month_at, 90),
+    )
+    benchmark_prices = (
+        performance_price("benchmark-start", "BENCH", AS_OF, 200),
+        performance_price("benchmark-1m", "BENCH", one_month_at, 210),
+        performance_price("benchmark-3m", "BENCH", three_month_at, 220),
+    )
+    price_repo = PriceRepository(session)
+    for item in stock_prices:
+        price_repo.add_price_snapshot(item, instrument_id="instrument-test")
+    for item in benchmark_prices:
+        price_repo.add_price_snapshot(item, instrument_id="instrument-benchmark")
+
+    first = build_performance_snapshot(performance_snapshot_id="performance-1m", analysis=analysis, instrument_id="instrument-test", evaluation_as_of=one_month_at, return_type=PerformanceReturnType.PRICE_RETURN, price_basis=PriceBasis.SPLIT_ADJUSTED, stock_prices=stock_prices, benchmark_assignment=assignment, benchmark_prices=benchmark_prices, benchmark_start_price_snapshot_id="benchmark-start", created_at=one_month_at + timedelta(hours=1))
+    later = build_performance_snapshot(performance_snapshot_id="performance-3m", analysis=analysis, instrument_id="instrument-test", evaluation_as_of=three_month_at, return_type=PerformanceReturnType.PRICE_RETURN, price_basis=PriceBasis.SPLIT_ADJUSTED, stock_prices=stock_prices, benchmark_assignment=assignment, benchmark_prices=benchmark_prices, benchmark_start_price_snapshot_id="benchmark-start", created_at=three_month_at + timedelta(hours=1))
+    performance_repo = PerformanceRepository(session)
+    performance_repo.add_performance_snapshot(first)
+    performance_repo.add_performance_snapshot(later)
+    restored = performance_repo.list_performance_snapshots(analysis.snapshot_id)
+    assert restored == (first, later)
+    assert next(item for item in restored[0].horizons if item.horizon == PerformanceHorizon.THREE_MONTHS).stock_return is None
+    assert next(item for item in restored[1].horizons if item.horizon == PerformanceHorizon.THREE_MONTHS).stock_return == pytest.approx(-0.10)
+    assert performance_repo.get_latest_performance_snapshot_for_analysis(analysis.snapshot_id) == later
+    row = session.get(PerformanceSnapshotRow, first.performance_snapshot_id)
+    row.coverage = 1.0
+    with pytest.raises(ImmutableRecordError):
+        session.commit()
+    session.rollback()
+    assert performance_repo.list_performance_snapshots(analysis.snapshot_id)[0] == first
