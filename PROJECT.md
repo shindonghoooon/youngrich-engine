@@ -23,6 +23,7 @@ Detailed authoritative specifications:
 - [Tracking Engine v1 Phase 1](docs/tracking-engine-v1.md)
 - [Persistence Phase 1](docs/persistence-v1.md)
 - [Performance Engine Phase 1](docs/performance-engine-v1.md)
+- [Historical Performance Stress Calibration v0.1](docs/validation/historical-performance-stress-calibration-v0.1.md)
 
 The detailed files own formulas, thresholds, and edge cases. This handoff document owns
 the high-level architecture and frozen status; avoid copying new formula variants here.

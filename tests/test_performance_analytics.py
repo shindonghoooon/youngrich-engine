@@ -166,3 +166,48 @@ def test_multiple_evaluations_of_one_analysis_are_not_double_counted():
     assert result.evaluation_snapshot_count == 2
     assert result.snapshot_count == 1
     assert result.return_sample_count == 1
+
+
+def test_newer_unresolved_evaluation_does_not_replace_resolved_horizon():
+    snapshot = historical_analysis("resolved-wins", InvestmentGrade.B)
+    resolved = performance("resolved", "resolved-wins", 0.25)
+    unresolved = performance("unresolved", "resolved-wins", None).model_copy(
+        update={
+            "evaluation_as_of": datetime(2027, 10, 1, 20, tzinfo=UTC),
+            "created_at": datetime(2027, 10, 1, 21, tzinfo=UTC),
+        }
+    )
+    result = analyze_performance_cohorts(
+        ((resolved, snapshot), (unresolved, snapshot)),
+        dimension=CohortDimension.INVESTMENT_GRADE,
+        horizon=PerformanceHorizon.ONE_YEAR,
+    )[0]
+    assert result.evaluation_snapshot_count == 2
+    assert result.snapshot_count == 1
+    assert result.return_sample_count == 1
+    assert result.mean_return == pytest.approx(0.25)
+
+
+def test_missing_current_state_is_unresolved_not_false():
+    snapshot = historical_analysis("unknown-current", InvestmentGrade.C).model_copy(
+        update={"current_trend": None}
+    )
+    result = analyze_performance_cohorts(
+        ((performance("unknown-current", "unknown-current", 0.10), snapshot),),
+        dimension=CohortDimension.FUNDING_STRESS,
+        horizon=PerformanceHorizon.ONE_YEAR,
+    )[0]
+    assert result.cohort == "unresolved"
+
+
+def test_auditable_research_cohort_label_does_not_mutate_snapshot():
+    snapshot = historical_analysis("labeled", InvestmentGrade.C)
+    before = snapshot.model_dump()
+    result = analyze_performance_cohorts(
+        ((performance("labeled", "labeled", 0.10), snapshot),),
+        dimension=CohortDimension.EXPECTATION_GAP,
+        horizon=PerformanceHorizon.ONE_YEAR,
+        cohort_labels={snapshot.snapshot_id: "negative"},
+    )[0]
+    assert result.cohort == "negative"
+    assert snapshot.model_dump() == before

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from enum import Enum
 from statistics import mean, median
-from typing import Iterable
+from typing import Iterable, Mapping
 
 from pydantic import Field
 
@@ -66,9 +66,13 @@ def _cohort_key(analysis: AnalysisSnapshot, dimension: CohortDimension) -> str:
     if dimension == CohortDimension.THESIS_STATUS:
         return analysis.thesis_status.status.value if analysis.thesis_status else "unresolved"
     if dimension == CohortDimension.FUNDING_STRESS:
-        return str(bool(analysis.current_trend and TrendFlag.FUNDING_STRESS in analysis.current_trend.flags)).lower()
+        if analysis.current_trend is None:
+            return "unresolved"
+        return str(TrendFlag.FUNDING_STRESS in analysis.current_trend.flags).lower()
     if dimension == CohortDimension.COMMERCIAL_INFLECTION:
-        return str(bool(analysis.current_trend and TrendFlag.COMMERCIAL_INFLECTION in analysis.current_trend.flags)).lower()
+        if analysis.current_trend is None:
+            return "unresolved"
+        return str(TrendFlag.COMMERCIAL_INFLECTION in analysis.current_trend.flags).lower()
     raise ValueError(f"unsupported cohort dimension: {dimension}")
 
 
@@ -83,6 +87,7 @@ def analyze_performance_cohorts(
     *,
     dimension: CohortDimension,
     horizon: PerformanceHorizon,
+    cohort_labels: Mapping[str, str | None] | None = None,
 ) -> tuple[CohortStatistics, ...]:
     grouped: dict[str, list[tuple[PerformanceSnapshot, AnalysisSnapshot]]] = {}
     for performance, analysis in records:
@@ -90,22 +95,32 @@ def analyze_performance_cohorts(
             raise ValueError("performance must be paired with its historical analysis snapshot")
         if performance.ticker != analysis.ticker:
             raise ValueError("performance ticker must match its historical analysis snapshot")
-        grouped.setdefault(_cohort_key(analysis, dimension), []).append((performance, analysis))
+        key = _cohort_key(analysis, dimension)
+        if cohort_labels is not None and analysis.snapshot_id in cohort_labels:
+            key = cohort_labels[analysis.snapshot_id] or "unresolved"
+        grouped.setdefault(key, []).append((performance, analysis))
 
     results: list[CohortStatistics] = []
     for cohort, items in sorted(grouped.items()):
         latest_by_analysis: dict[str, tuple[PerformanceSnapshot, AnalysisSnapshot]] = {}
         for performance, analysis in items:
             existing = latest_by_analysis.get(analysis.snapshot_id)
-            if existing is None or (
+            candidate_horizon = next(item for item in performance.horizons if item.horizon == horizon)
+            existing_horizon = (next(item for item in existing[0].horizons if item.horizon == horizon)
+                                if existing is not None else None)
+            candidate_key = (
+                candidate_horizon.state == ResolutionState.RESOLVED,
                 performance.evaluation_as_of,
                 performance.created_at,
                 performance.performance_snapshot_id,
-            ) > (
+            )
+            existing_key = (
+                existing_horizon.state == ResolutionState.RESOLVED,
                 existing[0].evaluation_as_of,
                 existing[0].created_at,
                 existing[0].performance_snapshot_id,
-            ):
+            ) if existing is not None else None
+            if existing_key is None or candidate_key > existing_key:
                 latest_by_analysis[analysis.snapshot_id] = (performance, analysis)
         latest_items = tuple(latest_by_analysis.values())
         horizon_items = [

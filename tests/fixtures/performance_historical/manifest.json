@@ -1,0 +1,57 @@
+{
+  "schema_version": "historical-performance-stress-v0.1",
+  "samples": [
+    {
+      "sample_id": "adbe_fy2017",
+      "path": "adbe_fy2017.json"
+    },
+    {
+      "sample_id": "adbe_fy2021",
+      "path": "adbe_fy2021.json"
+    },
+    {
+      "sample_id": "pypl_fy2021",
+      "path": "pypl_fy2021.json"
+    },
+    {
+      "sample_id": "nvda_fy2018",
+      "path": "nvda_fy2018.json"
+    },
+    {
+      "sample_id": "pltr_fy2021",
+      "path": "pltr_fy2021.json"
+    },
+    {
+      "sample_id": "crwd_fy2020",
+      "path": "crwd_fy2020.json"
+    },
+    {
+      "sample_id": "net_fy2020",
+      "path": "net_fy2020.json"
+    },
+    {
+      "sample_id": "shop_fy2015",
+      "path": "shop_fy2015.json"
+    },
+    {
+      "sample_id": "tsla_fy2014",
+      "path": "tsla_fy2014.json"
+    },
+    {
+      "sample_id": "mdb_fy2020",
+      "path": "mdb_fy2020.json"
+    },
+    {
+      "sample_id": "fsly_fy2021",
+      "path": "fsly_fy2021.json"
+    },
+    {
+      "sample_id": "sklz_fy2021",
+      "path": "sklz_fy2021.json"
+    },
+    {
+      "sample_id": "vldr_fy2020",
+      "path": "vldr_fy2020.json"
+    }
+  ]
+}

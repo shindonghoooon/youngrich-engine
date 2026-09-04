@@ -120,8 +120,12 @@ values are excluded only from the relevant denominator. Small samples remain vis
 without claims of statistical significance.
 
 When multiple evaluations exist for one historical analysis, cohort statistics use the
-latest evaluation only so one investment judgment is not double-counted. The total
-number of supplied evaluation snapshots remains visible separately.
+newest evaluation that resolves the requested horizon; if multiple evaluations resolve
+it, the latest one wins. A newer unresolved update never erases an older resolved value,
+and one investment judgment is not double-counted. The total number of supplied
+evaluation snapshots remains visible separately. Research-only labels may be supplied
+as an explicit mapping; absent Funding Stress or Commercial Inflection remains
+`unresolved`, never silently `false`.
 
 ## Calibration boundary
 
