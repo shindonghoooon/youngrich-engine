@@ -1,12 +1,28 @@
 # Tracking Schema v0.1
 
+Status: FROZEN
+
+Version: 0.1
+
+Authoritative: YES
+
+Last Updated: 2026-09-04
+
+Implementation: `engine/tracking_models.py`
+
+Tests: `tests/test_tracking_models.py`
+
+Supersedes: `docs/tracking-schema.md`
+
+Change Policy: changes require an explicit design decision, compatibility review, and version bump.
+
 ## Status and scope
 
 Tracking Schema v0.1 is the immutable, versioned domain contract for tracking,
 persistence, reporting, and dashboard work. Tracking Engine v1 Phase 1 now executes
 the price, snapshot-diff, thesis-status, and entry-zone portions of this contract. It
 lives in `engine/tracking_models.py`; executable semantics are documented in
-`docs/tracking-engine-v1.md`.
+`tracking-engine-v1.md`.
 
 It does not implement a database, dashboard, ingestion scheduler, or price API. Pure
 Case 2 Quant/Current/Narrative, Common Valuation, and Investment Grade calculations

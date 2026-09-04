@@ -1,5 +1,11 @@
 # Eli Lilly Case 1 Validation — 2026-08-31
 
+Status: VALIDATION
+
+Authoritative for Results: YES
+
+Authoritative for Investment Rules: NO — see [Case 1 v1](../docs/specs/case1-v1.md)
+
 ## Scope and sources
 
 This report reuses the existing Case 1 pipeline and absolute rules without an

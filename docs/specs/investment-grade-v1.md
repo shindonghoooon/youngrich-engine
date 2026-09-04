@@ -1,5 +1,21 @@
 # Investment Grade v1 — Authoritative Specification
 
+Status: FROZEN
+
+Version: 1.0
+
+Authoritative: YES
+
+Last Updated: 2026-09-04
+
+Implementation: `engine/investment_grade_engine.py`
+
+Tests: `tests/test_valuation_investment_engines.py`, `tests/test_case2_golden_validation.py`
+
+Supersedes: `docs/investment-grade-v1.md` and weighted-average Investment Grade proposals
+
+Change Policy: changes require an explicit design decision and version bump.
+
 Grades are `A`, `B`, `C`, `D`, `X`, and `U`. Investment Grade is never a weighted average.
 
 ## Initial valuation grade
@@ -51,4 +67,3 @@ Every active gate/cap stores a unique sequence number, trigger, maximum grade wh
 applicable, and reason. The engine applies stored adjustments in sequence and retains
 every trigger, so the final result is reproducible. Ordinary caps select the most
 restrictive grade reached; Thesis Breaker forces X.
-

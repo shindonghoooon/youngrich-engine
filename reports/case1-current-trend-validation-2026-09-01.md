@@ -1,5 +1,11 @@
 # Case 1 Current Trend Overlay v1 Validation — 2026-09-01
 
+Status: VALIDATION
+
+Authoritative for Results: YES
+
+Authoritative for Investment Rules: NO — see [Case 1 Current Trend v1](../docs/specs/case1-current-trend-v1.md)
+
 ## Decision
 
 **FROZEN**

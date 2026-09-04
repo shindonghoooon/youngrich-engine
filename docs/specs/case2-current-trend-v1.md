@@ -1,5 +1,21 @@
 # Case 2 Current Trend v1 — Authoritative Specification
 
+Status: FROZEN
+
+Version: 1.0
+
+Authoritative: YES
+
+Last Updated: 2026-09-04
+
+Implementation: `engine/case2_current.py`, `engine/case2_policy.py`
+
+Tests: `tests/test_case2_calculation_engines.py`, `tests/test_case2_golden_validation.py`
+
+Supersedes: `docs/case2-current-trend-v1.md` and earlier candidate rules
+
+Change Policy: changes require an explicit design decision and version bump.
+
 Signals are Revenue Momentum, Gross Profit Momentum, Cash Burn Momentum,
 Funding / Runway, and Thesis KPI Momentum. They never change Annual Quant.
 

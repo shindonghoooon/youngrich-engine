@@ -1,5 +1,11 @@
 # Samyang Foods Case 1 Validation — 2026-08-31
 
+Status: VALIDATION
+
+Authoritative for Results: YES
+
+Authoritative for Investment Rules: NO — see [Case 1 v1](../docs/specs/case1-v1.md)
+
 ## Scope and sources
 
 This is a reproducible Quant Quality validation of the existing Case 1 engine.
@@ -80,4 +86,3 @@ existing standardized ROIC v1 convention.
   encode its depreciation/amortization components.
 - The debt convention excludes lease liabilities and does not attempt excess-cash
   or goodwill adjustments. No Samyang-specific correction was introduced.
-

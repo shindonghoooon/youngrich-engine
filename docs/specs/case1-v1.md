@@ -1,5 +1,21 @@
 # Case 1 — Profitable Growth
 
+Status: FROZEN
+
+Version: 1.0
+
+Authoritative: YES
+
+Last Updated: 2026-09-04
+
+Implementation: `engine/case1_snapshot.py`, `engine/cases/profitable_growth.py`, `engine/scoring.py`
+
+Tests: `tests/test_financial_pipeline.py`, `tests/test_scoring.py`, `tests/test_additional_case1_pipelines.py`
+
+Supersedes: `docs/cases/01-profitable-growth.md` and historical Case 1 sections in `PROJECT.md`
+
+Change Policy: changes require an explicit design decision and version bump.
+
 ## Definition
 
 이미 흑자를 내고 있으며, 사업 성장과 이익 성장이 주당 가치 증가로 이어지는 기업.
@@ -26,7 +42,8 @@
 
 가중치는 v1에서 고정한다.
 
-Capital Model은 가중치보다 benchmark 조정을 우선한다.
+Capital Model benchmark calibration is not implemented in v1 and does not modify these
+weights or grades.
 
 ## 1. Revenue Growth
 
@@ -77,7 +94,7 @@ Base:
 
 Important:
 절대 margin이 구조적으로 높은 기업이 높은 수준을 유지하는 경우
-Capital Model benchmark를 통해 최소 B까지 보정 가능하다.
+Capital Model adjustment is not applied in frozen v1.
 
 ## 4. Cash Economics
 
@@ -96,7 +113,7 @@ FCF가 낮다는 사실만으로 quality를 낮게 평가하지 않는다.
 
 v1 grade는 3Y cumulative CFO / 3Y cumulative consolidated Net Income만으로 판정한다.
 CAPEX / CFO는 `reinvestment intensity` 태그로 저장하며 grade를 직접 변경하지 않는다.
-세부 cutoff와 예외 처리는 [Cash Economics v1](../cash-economics.md)을 따른다.
+세부 cutoff와 예외 처리는 [Cash Economics v1](cash-economics-v1.md)을 따른다.
 
 예:
 Oracle처럼 CFO는 강하지만 대규모 AI/cloud CAPEX로 FCF가 음수인 경우
@@ -122,7 +139,7 @@ Base:
 NOTE:
 v1은 reported accounting data 기반 standardized ROIC를 사용하며 Capital Model
 benchmark adjustment를 적용하지 않는다. 세부 공식은
-[Capital Efficiency v1](../capital-efficiency.md)을 따른다.
+[Capital Efficiency v1](capital-efficiency-v1.md)을 따른다.
 
 ## 6. Balance Sheet
 
@@ -137,7 +154,7 @@ Base:
 - 3x ~ 4x: D
 - > 4x: X
 
-Capital Model adjustment maximum +/- 1 grade.
+Capital Model adjustment is not applied in frozen v1.
 
 ## 7. Dilution
 
@@ -179,14 +196,14 @@ Grade score:
 
 Weighted score maximum: 4.0
 
-Provisional boundaries:
+Frozen v1 boundaries:
 - A: >= 3.50
 - B: 3.00 ~ 3.49
 - C: 2.40 ~ 2.99
 - D: 1.80 ~ 2.39
 - X: < 1.80
 
-이 경계값은 calibration 전 임시값이다.
+이 경계값은 frozen v1의 production 기준이다. 변경에는 새 버전이 필요하다.
 
 ## Narrative
 

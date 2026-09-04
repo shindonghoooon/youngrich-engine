@@ -1,5 +1,21 @@
 # Cash Economics v1
 
+Status: FROZEN
+
+Version: 1.0
+
+Authoritative: YES
+
+Last Updated: 2026-09-04
+
+Implementation: `engine/financial_metrics.py`, `engine/cases/profitable_growth.py`
+
+Tests: `tests/test_financial_pipeline.py`, `tests/test_scoring.py`
+
+Supersedes: `docs/cash-economics.md`
+
+Change Policy: changes require an explicit design decision and version bump.
+
 Cash Economics는 Profitable Growth의 고정된 8개 Core 중 하나다.
 
 ## Primary grade

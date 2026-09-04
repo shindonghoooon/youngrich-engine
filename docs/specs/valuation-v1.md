@@ -1,5 +1,21 @@
 # Common Valuation v1 — Authoritative Structural Specification
 
+Status: FROZEN
+
+Version: 1.0
+
+Authoritative: YES
+
+Last Updated: 2026-09-04
+
+Implementation: `engine/valuation_engine.py`
+
+Tests: `tests/test_valuation_investment_engines.py`, `tests/test_case2_golden_validation.py`
+
+Supersedes: `docs/valuation-v1.md`, valuation v0.x candidates, and single fixed-exit-multiple proposals
+
+Change Policy: changes require an explicit design decision and version bump.
+
 Market prices are inputs. No current price is hard-coded and no real-time feed is part
 of v1. Required-return sensitivities are 10%, 15% (default), and 20%.
 

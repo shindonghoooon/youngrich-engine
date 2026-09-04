@@ -1,5 +1,15 @@
 # Case 1 Stress Test — 2026-08-30
 
+Status: SUPERSEDED / HISTORICAL — DO NOT IMPLEMENT
+
+Authoritative for Results: NO — provisional manual results
+
+Authoritative for Investment Rules: NO
+
+Current rules: [Case 1 v1](../docs/specs/case1-v1.md)
+
+Later reproducible evidence: [Case 1 cross-company validation](case1-cross-company-validation-2026-08-31.md)
+
 ## Status
 
 이 문서는 Case 1 규칙을 실제 기업에 적용해 본 **provisional calibration report**다.

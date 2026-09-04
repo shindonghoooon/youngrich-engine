@@ -1,6 +1,20 @@
 # Persistence Phase 1
 
-Status: checkpointed v1
+Status: FROZEN
+
+Version: 1.0
+
+Authoritative: YES
+
+Last Updated: 2026-09-04
+
+Implementation: `engine/persistence/models.py`, `engine/persistence/mappers.py`, `engine/persistence/repositories.py`
+
+Tests: `tests/test_persistence_phase1.py`, `tests/test_persistence_migration.py`
+
+Supersedes: `docs/persistence-v1.md`
+
+Change Policy: changes require an explicit design decision, migration review, and version bump.
 
 Persistence Phase 1 stores the existing frozen Case 1/Case 2 and Tracking Engine
 outputs. It does not add, recompute, or reinterpret any investment rule.

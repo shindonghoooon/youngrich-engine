@@ -1,5 +1,21 @@
 # Case 2 Narrative v1 — Authoritative Specification
 
+Status: FROZEN
+
+Version: 1.0
+
+Authoritative: YES
+
+Last Updated: 2026-09-04
+
+Implementation: `engine/narrative_engine.py`, `engine/case2_policy.py`
+
+Tests: `tests/test_case2_calculation_engines.py`, `tests/test_case2_golden_validation.py`
+
+Supersedes: `docs/narrative-v1.md` and earlier Narrative candidates
+
+Change Policy: changes require an explicit design decision and version bump.
+
 Narrative dimensions are Differentiation, Defensibility, Adoption,
 Penetration / Expansion, Durability, and Failure Mode.
 
@@ -34,4 +50,3 @@ it is not a new investment rule and prevents missing evidence from becoming DEVE
 Every Narrative snapshot stores Thesis Definition version, KPI-set version, and exact
 KPI definition ids. A KPI set cannot change silently after results are released.
 `SnapshotDiff` rejects changed KPI ids without a KPI-set version increment.
-

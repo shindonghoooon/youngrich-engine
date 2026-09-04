@@ -12,6 +12,8 @@ Outcome-aware: YES
 
 Unbiased Backtest: NO
 
+Last Updated: 2026-09-04
+
 Performance checkpoint: `74a05649965b5d05b1f45a851e6fb283650821c5`
 
 Research snapshot: 2026-09-04

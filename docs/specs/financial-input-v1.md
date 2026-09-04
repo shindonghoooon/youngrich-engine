@@ -1,5 +1,21 @@
 # Financial Input / Normalization Layer v1
 
+Status: FROZEN
+
+Version: 1.0
+
+Authoritative: YES
+
+Last Updated: 2026-09-04
+
+Implementation: `engine/financials.py`, `engine/financial_metrics.py`, `schemas/raw_financials.schema.json`
+
+Tests: `tests/test_financial_pipeline.py`, `tests/test_orcl_financial_pipeline.py`
+
+Supersedes: `docs/financial-input.md`
+
+Change Policy: changes require an explicit design decision and version bump.
+
 ## Pipeline
 
 ```text
@@ -39,4 +55,4 @@ Raw Data
 
 ROIC는 `operating_income`, `pretax_income`, `income_tax_expense`, `total_debt`,
 `total_equity`, `cash`에서 자동 계산한다. 공식과 unresolved guardrail은
-[Capital Efficiency v1](capital-efficiency.md)을 따른다.
+[Capital Efficiency v1](capital-efficiency-v1.md)을 따른다.

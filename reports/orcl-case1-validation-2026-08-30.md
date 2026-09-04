@@ -1,5 +1,11 @@
 # ORCL Case 1 Validation — 2026-08-30
 
+Status: VALIDATION
+
+Authoritative for Results: YES
+
+Authoritative for Investment Rules: NO — see [Case 1 v1](../docs/specs/case1-v1.md)
+
 ## Scope
 
 This report validates the existing Case 1 Profitable Growth pipeline for Oracle

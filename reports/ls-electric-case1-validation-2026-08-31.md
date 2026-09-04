@@ -1,5 +1,11 @@
 # LS ELECTRIC Case 1 Validation — 2026-08-31
 
+Status: VALIDATION
+
+Authoritative for Results: YES
+
+Authoritative for Investment Rules: NO — see [Case 1 v1](../docs/specs/case1-v1.md)
+
 ## Scope and sources
 
 This report uses only reported financial history. Grid investment, data-center
@@ -80,4 +86,3 @@ liabilities and the convertible redeemable preference liability are excluded.
   be tracked across companies, not corrected only for LS ELECTRIC.
 - The C Capital Efficiency grade is the result of unchanged absolute ROIC bands.
   No manufacturing benchmark adjustment was applied.
-

@@ -1,5 +1,21 @@
 # Capital Efficiency v1
 
+Status: FROZEN
+
+Version: 1.0
+
+Authoritative: YES
+
+Last Updated: 2026-09-04
+
+Implementation: `engine/financial_metrics.py`, `engine/cases/profitable_growth.py`
+
+Tests: `tests/test_financial_pipeline.py`
+
+Supersedes: `docs/capital-efficiency.md`
+
+Change Policy: changes require an explicit design decision and version bump.
+
 Capital Efficiency는 Case 1 Profitable Growth의 고정된 8개 Core 중 하나다. v1은
 reported accounting data만 사용하는 단순하고 재현 가능한 standardized ROIC를
 Primary grade input으로 사용한다.

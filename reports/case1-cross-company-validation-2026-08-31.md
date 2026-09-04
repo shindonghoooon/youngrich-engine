@@ -1,5 +1,11 @@
 # Case 1 Cross-company Validation — 2026-08-31
 
+Status: VALIDATION
+
+Authoritative for Results: YES
+
+Authoritative for Investment Rules: NO — see [Case 1 v1](../docs/specs/case1-v1.md)
+
 ## Purpose
 
 This table compares five companies through the same Case 1 normalization,
@@ -39,4 +45,3 @@ components and debt inclusion policy without adding a ninth Core metric.
 
 No repeated result in this sample justifies changing Case 1 formulas, weights,
 or grade bands. Valuation, Narrative, and Investment Grade remain out of scope.
-

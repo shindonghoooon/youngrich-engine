@@ -1,7 +1,20 @@
 # Case 2 Golden Validation — 2026-09-01
 
-Status: validation fixture, not investment advice  
-Analysis snapshot: 2026-09-01 16:00 US Eastern (regular-session close)  
+Status: VALIDATION — COMPLETE
+
+Authoritative for Results: YES
+
+Authoritative for Investment Rules: NO
+
+Outcome-aware: NO
+
+Unbiased Backtest: NO
+
+Last Updated: 2026-09-04
+
+Validation fixture; not investment advice.
+
+Analysis snapshot: 2026-09-01 16:00 US Eastern (regular-session close)
 Logic under test: frozen Case 2 Quant, Narrative Gate, Current Trend, Common Valuation, and Investment Grade v1
 
 This validation does not fetch data at test time and does not change frozen policy. The JSON fixtures are manually curated normalized inputs. Amounts are USD thousands unless stated otherwise. A fixture section is one provenance envelope: its `source_id` resolves to source, source date and `available_at`; each period retains `fiscal_period_end`; the JSON key/value is the retrieved normalized field/value; and `normalization_note` records the transformation. Null means unresolved, never zero.

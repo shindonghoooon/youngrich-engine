@@ -1,6 +1,20 @@
 # Performance Engine Phase 1
 
-Status: stabilized for Phase 1 checkpoint
+Status: FROZEN
+
+Version: 1.0
+
+Authoritative: YES
+
+Last Updated: 2026-09-04
+
+Implementation: `engine/performance_engine.py`, `engine/performance_analytics.py`
+
+Tests: `tests/test_performance_engine.py`, `tests/test_performance_analytics.py`, `tests/test_historical_performance_calibration.py`
+
+Supersedes: `docs/performance-engine-v1.md`
+
+Change Policy: changes require an explicit design decision and version bump.
 
 Performance Engine v1 measures the market outcome after an immutable historical
 analysis. It is downstream-only: realized prices never mutate or feed back into Quant,

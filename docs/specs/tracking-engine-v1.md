@@ -1,5 +1,21 @@
 # Tracking Engine v1 — Phase 1
 
+Status: FROZEN
+
+Version: 1.0
+
+Authoritative: YES
+
+Last Updated: 2026-09-04
+
+Implementation: `engine/price_tracking.py`, `engine/snapshot_diff.py`, `engine/thesis_engine.py`, `engine/entry_zone.py`
+
+Tests: `tests/test_price_tracking_and_entry_zone.py`, `tests/test_snapshot_diff_engine.py`, `tests/test_thesis_engine.py`
+
+Supersedes: `docs/tracking-engine-v1.md`
+
+Change Policy: changes require an explicit design decision and version bump.
+
 ## Status and scope
 
 Phase 1 implements pure, immutable tracking calculations on top of the frozen Case 1

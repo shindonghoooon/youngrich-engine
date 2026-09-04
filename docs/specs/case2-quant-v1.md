@@ -1,6 +1,20 @@
 # Case 2 Quant v1 — Authoritative Specification
 
-**Status: FROZEN v1**
+Status: FROZEN
+
+Version: 1.0
+
+Authoritative: YES
+
+Last Updated: 2026-09-04
+
+Implementation: `engine/case2_policy.py`, `engine/case2_quant.py`
+
+Tests: `tests/test_case2_calculation_engines.py`, `tests/test_case2_golden_validation.py`
+
+Supersedes: `docs/case2-quant-v1.md` and earlier generic `loss_making_growth` proposals
+
+Change Policy: changes require an explicit design decision and version bump.
 
 Case 2 is `Emerging / Asymmetric Growth`. This document fixes the Quant policy;
 company-specific exceptions are prohibited.
@@ -167,4 +181,3 @@ the raw score, uncapped grade, final grade, and active cap.
 Supporting metrics have zero weight. Incremental Operating Margin is
 `ΔOperating Income / ΔRevenue`; when `ΔRevenue <=0`, store a scaling-failure signal
 instead of a misleading positive ratio.
-

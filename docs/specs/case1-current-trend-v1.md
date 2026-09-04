@@ -1,7 +1,22 @@
 # Current Trend Overlay v1
 
+Status: FROZEN
+
+Version: 1.0
+
+Authoritative: YES
+
+Last Updated: 2026-09-04
+
+Implementation: `engine/current_trend.py`, `engine/current_financials.py`, `engine/case1_snapshot.py`
+
+Tests: `tests/test_current_trend.py`, `tests/test_current_trend_cross_company.py`
+
+Supersedes: `docs/current-trend-overlay.md`
+
+Change Policy: changes require an explicit design decision and version bump.
+
 ```yaml
-Status: FROZEN v1
 Frozen: 2026-09-01
 
 Validated:
