@@ -14,12 +14,12 @@ Allowed milestone states are `COMPLETE`, `ACTIVE`, `PLANNED`, `BLOCKED`, and
 ## Current state
 
 - Latest completed milestone: **M11 Historical Stress Calibration**
-- Next research milestone: **M12 Systematic Historical Backtest — PLANNED**
+- Current milestone: **M12 Generic Backtest & Calibration Framework — ACTIVE / DESIGN**
 - Parallel future product track: **M13–M15 — PLANNED**
 - Case expansion: **M16 — DEFERRED**
 
-No implementation milestone is currently `ACTIVE`; M12 must pass its decision gate
-before implementation begins.
+M12-A minimal architecture/kernel work is active. M12-B systematic universe execution
+remains blocked on its eight data/universe decisions.
 
 ## M0 Project Framework
 
@@ -152,30 +152,44 @@ before implementation begins.
 
 See [Historical Stress Calibration v0.1](validation/historical-performance-stress-calibration-v0.1.md).
 
-## M12 Systematic Historical Backtest
+## M12 Generic Backtest & Calibration Framework
 
-- Status: PLANNED / NEXT RESEARCH MILESTONE
-- Goal: Evaluate the framework on a pre-defined point-in-time universe without selecting
-  companies because they later won or failed.
-- Deliverables: approved universe, deterministic snapshot cadence, point-in-time data
-  model, delisted-security coverage, adjustment-safe history, historical router
-  eligibility, versioned benchmarks, and cohort evaluation.
-- Entry criteria: all five decision gates below approved.
-- Exit criteria: frozen protocol, leakage tests, survivorship controls, reproducible
-  offline dataset, and pre-declared analysis report.
-- Decisions required: universe, cadence, providers, benchmark, date range, US-only versus
-  US+KR.
-- Non-goals: rule optimization on the evaluation sample.
+- Status: ACTIVE — DESIGN
+- Goal: Give every present and future Case one point-in-time snapshot → future outcome →
+  calibration protocol while keeping Case logic in adapters.
+- Deliverables: universal kernel, versioned runs/records/findings, metric analytics,
+  layer coverage, logic-version comparison, and staged systematic testing.
+- Entry criteria: immutable Analysis/Performance snapshots and downstream-only outcomes.
+- Exit criteria: all six M12 stages below complete under their own approval gates.
+- Decisions required: M12-A architecture is accepted by ADR-0011; M12-B retains the
+  eight data/universe decisions below.
+- Non-goals: automatic threshold optimization, Case-specific kernel logic, or rewriting
+  frozen historical results.
 
-### M12 implementation decision gate
+### M12 stages
+
+1. **M12-A — Universal Calibration Kernel: COMPLETE / FROZEN**
+2. **M12-B — Case 1/2 Quant Systematic Test: ACTIVE — DATA PILOT**
+3. **M12-C — Current Overlay Incremental Test: PLANNED**
+4. **M12-D — Valuation / Expectation Gap Incremental Test: PLANNED**
+5. **M12-E — Narrative / Full Investment Grade Subset Test: PLANNED**
+6. **M12-F — Case Expansion / Router Validation: PLANNED**
+
+Architecture: [Generic Calibration Framework](specs/calibration-framework-v1.md).
+Systematic universe/provider detail: [M12-B research plan](research/systematic-backtest-plan.md).
+
+### M12-B implementation decision gate
 
 Before full implementation, explicitly approve:
 
 1. Universe v1
-2. Snapshot Cadence v1
-3. Data Source Plan v1
-4. Benchmark Policy v1
-5. Historical Date Range v1
+2. Geographic Scope v1 (US-only versus US+KR)
+3. Snapshot Cadence v1
+4. Historical Date Range v1
+5. Fundamentals Source v1
+6. Market / Corporate Action / Delisting Source v1
+7. Benchmark Policy v1
+8. Narrative Mode v1
 
 No agent may silently invent these choices. See the
 [research plan](research/systematic-backtest-plan.md).
@@ -224,7 +238,7 @@ No agent may silently invent these choices. See the
 
 ## Open Decisions
 
-### Systematic Backtest — OPEN
+### M12-B Systematic Test — OPEN
 
 - Initial stock universe
 - US-only versus US+KR

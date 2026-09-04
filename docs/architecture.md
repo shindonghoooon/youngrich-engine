@@ -109,8 +109,12 @@ valuation assumption version. Technical indicators are outside v1.
 
 - Validation observes behavior under frozen rules; it does not redefine them.
 - Historical Stress Calibration is curated/outcome-aware and diagnostic only.
-- A future Systematic Historical Backtest requires a pre-approved point-in-time
-  universe, schedule, data plan, date range, and benchmark policy.
+- The Generic Calibration Kernel joins immutable Analysis and Performance snapshots
+  through Case-specific adapters; it contains no Case-specific investment semantics.
+- Research findings require review, a new version, and same-data comparison; they never
+  mutate frozen logic automatically.
+- M12-B systematic execution requires a pre-approved point-in-time universe, schedule,
+  data plan, date range, benchmark policy, and Narrative mode.
 
 ### Dashboard and API
 

@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 
 from engine.case2_analysis import Case2AnalysisInput, build_case2_analysis
+from engine.case_backtest_adapters import Case2BacktestAdapter, evaluate_with_adapter
 from engine.case2_current import Case2CurrentInput
 from engine.case2_quant import Case2AnnualPeriod, Case2QuantInput
 from engine.models import Grade
@@ -393,3 +394,12 @@ def test_golden_high_level_regressions():
     assert outputs["EROC"].quant.state == ResolutionState.UNRESOLVED
     assert outputs["EROC"].investment_grade.final_grade == InvestmentGrade.U
     assert {ticker: item.investment_grade.final_grade.value for ticker, item in outputs.items()} == {"TEM": "B", "IONQ": "C", "ONDS": "C", "LPTH": "C", "EROC": "U"}
+
+
+def test_case2_backtest_adapter_reuses_the_frozen_analysis_path():
+    inputs = build_input(load_fixture("TEM"))
+    direct = build_case2_analysis(inputs)
+    adapted = evaluate_with_adapter(
+        Case2BacktestAdapter(), inputs, as_of=inputs.as_of
+    )
+    assert adapted == direct

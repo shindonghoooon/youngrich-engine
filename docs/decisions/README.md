@@ -18,5 +18,6 @@ replacement; research notes cannot supersede an accepted ADR.
 | [0008](0008-immutable-versioned-snapshots.md) | Immutable/versioned snapshots | ACCEPTED |
 | [0009](0009-company-vs-instrument-identity.md) | Company vs Instrument identity | ACCEPTED |
 | [0010](0010-performance-is-downstream-only.md) | Performance is downstream-only | ACCEPTED |
+| [0011](0011-generic-calibration-framework.md) | Generic Calibration Framework | ACCEPTED |
 
 Use the next number only for a material architecture or investment-model decision.

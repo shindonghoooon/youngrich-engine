@@ -66,10 +66,14 @@ label. Case 3–6 definitions are not implementation authorization.
 - useful for engine and diagnostic validation only
 - not an unbiased backtest and not evidence of proven alpha
 
-**Next research milestone: M12 Systematic Historical Backtest — PLANNED**
+**Current milestone: M12-B Case 1/2 Quant Systematic Test — ACTIVE DATA PILOT**
 
-M12 cannot begin until Universe, Snapshot Cadence, Data Source, Benchmark Policy, and
-Historical Date Range v1 are explicitly approved. The parallel future product track is:
+M12-A is COMPLETE / FROZEN and establishes a common, Case-agnostic calibration kernel
+over immutable Analysis and Performance snapshots. M12-B0 now tests free-data
+feasibility; full M12-B1 systematic execution cannot begin until Universe,
+US-versus-Korea scope, Snapshot Cadence, Historical Range, Fundamentals Source,
+Market/Delisting Source, Benchmark Policy, and Narrative Mode v1 are explicitly
+approved. The parallel future product track is:
 
 ```text
 EOD Market Data → API → Dashboard → PWA / Alerts
@@ -111,6 +115,8 @@ and historical discussion. Changes require an explicit design decision and versi
 | Tracking domain, price, diff, thesis, and entry-zone engines | COMPLETE |
 | Append-only persistence and Alembic schema | COMPLETE |
 | Performance horizons, MDD coverage, benchmark alpha, and cohorts | COMPLETE |
+| Generic Calibration Kernel M12-A | COMPLETE / FROZEN |
+| M12-B0 free-first data pilot | ACTIVE |
 | Systematic unbiased historical backtest | NOT IMPLEMENTED |
 | Production EOD ingestion/API/dashboard/PWA | NOT IMPLEMENTED |
 | Case 3–6 engines | NOT IMPLEMENTED |
@@ -148,6 +154,11 @@ These are correction records, not new rules.
 
 Detailed gates live in [the roadmap](docs/roadmap.md). Do not decide these implicitly
 during implementation.
+
+The common research architecture is documented in the
+[Generic Calibration Framework](docs/specs/calibration-framework-v1.md). Its
+governing rule is: every Case may use different investment logic, but every Case uses
+the same historical validation protocol.
 
 ## Documentation Map
 
