@@ -3,7 +3,7 @@
 > **Project:** 주식으로 파이어 프로젝트
 > **Repository:** `shindonghoooon/youngrich-engine`
 > **Document Date:** 2026-09-02
-> **Status:** Case 1 v1 Frozen / Case 2 v1 Frozen / Tracking Schema v0.1
+> **Status:** Case 1 v1 Frozen / Case 2 v1 Frozen / Tracking Engine v1 Phase 1 implemented
 
 ---
 
@@ -20,6 +20,7 @@ Detailed authoritative specifications:
 - [Narrative v1](docs/narrative-v1.md)
 - [Common Valuation v1](docs/valuation-v1.md)
 - [Investment Grade v1](docs/investment-grade-v1.md)
+- [Tracking Engine v1 Phase 1](docs/tracking-engine-v1.md)
 
 The detailed files own formulas, thresholds, and edge cases. This handoff document owns
 the high-level architecture and frozen status; avoid copying new formula variants here.
@@ -1885,6 +1886,13 @@ Tracking:
 ```text
 Tracking Schema v0.1
 → immutable/versioned Pydantic domain models implemented
+
+Tracking Engine v1 Phase 1
+→ PriceSnapshot, SnapshotDiff, Thesis Tracking,
+  valuation Entry Zone, and grade-change attribution implemented
+
+Persistence / providers / dashboard / alerts / Performance Engine
+→ deferred
 ```
 
 관련 주요 commits:
@@ -1898,6 +1906,9 @@ Current Trend follow-up
 
 7ace418
 Case1 Current Trend Overlay v1 freeze
+
+b34223f
+Case2 calculation engines + five-company golden validation
 ```
 
 당시:
@@ -2051,9 +2062,16 @@ Investment Grade
 ██████████ 100%
 Global precedence and deterministic gate/cap engine implemented
 
-Tracking KPI Engine
-██████░░░░
-Schema v0.1 implemented; persistence/dashboard deferred
+Tracking Schema
+██████████ 100%
+Immutable/versioned domain contract implemented
+
+Tracking Engine v1 Phase 1
+██████████ 100%
+Price, snapshot diff, thesis status, entry zone, and attribution implemented
+
+Tracking persistence / providers / dashboard / alerts / Performance Engine
+→ deferred
 ```
 
 ---

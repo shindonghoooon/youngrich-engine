@@ -80,6 +80,7 @@ streamlit run dashboard/app.py
 - [x] Common Valuation v1 pure calculation engine (Case 1 PE; Case 2 EV/Revenue, EV/GP, EV/EBIT)
 - [x] Case 2 Narrative v1 categorical gate derivation
 - [x] Case 2 Quant / Current Trend / Investment Grade v1 pure engines
+- [x] Tracking Engine v1 Phase 1 (price, diff, thesis status, entry zones)
 - [ ] Case 3–6 engines
 - [ ] Performance tracking / backtest
 - [ ] Automated 1-page report

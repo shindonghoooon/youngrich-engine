@@ -42,6 +42,7 @@ class Case2AnalysisInput(FrozenDomainModel):
     required_return: float
     valuation_evidence: ValuationEvidenceState
     asymmetry_type: AsymmetryType
+    reference_price_snapshot_id: str | None = None
 
 
 def build_case2_analysis(inputs: Case2AnalysisInput) -> AnalysisSnapshot:
@@ -100,6 +101,8 @@ def build_case2_analysis(inputs: Case2AnalysisInput) -> AnalysisSnapshot:
         quant=quant_result.snapshot,
         current_trend=current,
         narrative=inputs.narrative,
+        narrative_gate=narrative_result.gate,
         valuation=valuation,
         investment_grade=investment_grade,
+        reference_price_snapshot_id=inputs.reference_price_snapshot_id,
     )

@@ -2,8 +2,11 @@
 
 ## Status and scope
 
-Tracking Schema v0.1 is the immutable, versioned domain contract for future tracking,
-persistence, reporting, and dashboard work. It lives in `engine/tracking_models.py`.
+Tracking Schema v0.1 is the immutable, versioned domain contract for tracking,
+persistence, reporting, and dashboard work. Tracking Engine v1 Phase 1 now executes
+the price, snapshot-diff, thesis-status, and entry-zone portions of this contract. It
+lives in `engine/tracking_models.py`; executable semantics are documented in
+`docs/tracking-engine-v1.md`.
 
 It does not implement a database, dashboard, ingestion scheduler, or price API. Pure
 Case 2 Quant/Current/Narrative, Common Valuation, and Investment Grade calculations
@@ -40,11 +43,14 @@ combined with an earlier year-end price.
 | `ThesisDefinition` | Immutable version of a thesis and its KPI-set identity |
 | `TrackingKPIDefinition` | Versioned KPI meaning and confirming/weakening/breaker rules |
 | `TrackingKPIObservation` | Time-aware KPI observation with first-class unresolved state |
-| `ThesisStatusSnapshot` | Historical confirming/stable/weakening/broken/unresolved result |
+| `ThesisStatusSnapshot` | Historical confirming/neutral/weakening/broken/unresolved result (`stable` is legacy input normalized to `neutral`) |
 | `ValuationSnapshot` | Market price, versioned assumptions, and valuation output |
 | `InvestmentGradeSnapshot` | Initial valuation grade plus explicit gates/caps |
 | `SnapshotDiff` | Changes between immutable snapshots and KPI-version protection |
 | `PerformanceSnapshot` | Returns/drawdown tied to an analysis and executable entry price |
+| `PriceSnapshot` | Independent, immutable price-series record with replaceable source |
+| `MetricDiff` / `SignalDiff` / `NarrativeDiff` | Direction-aware structured transitions |
+| `EntryZoneResult` | Version-preserving conservative/base/premium valuation boundaries |
 
 Supporting contracts include `ValuationAssumptionSet`, `ExitMultipleAssumption`,
 `ValuationOutput`, `RequiredGrowthCase`, `NarrativeGate`, `InvestmentGradeAdjustment`,
@@ -58,6 +64,10 @@ Supporting contracts include `ValuationAssumptionSet`, `ExitMultipleAssumption`,
 - `engine/valuation_engine.py`: Case 1/2 required growth and `ValuationSnapshot`
 - `engine/investment_grade_engine.py`: upstream outputs to recorded gates/caps
 - `engine/case2_analysis.py`: thin composition into immutable `AnalysisSnapshot`
+- `engine/price_tracking.py`: provider-independent price comparison
+- `engine/snapshot_diff.py`: material changes and grade attribution
+- `engine/thesis_engine.py`: version-safe KPI direction and thesis status
+- `engine/entry_zone.py`: reverse Case 1/2 valuation boundaries
 
 These modules fetch no external data and perform no persistence.
 
@@ -137,3 +147,8 @@ There is no automatic conversion or database migration in v0.1. A future migrati
 3. preserve existing snapshot ids/history rather than overwrite records;
 4. explicitly map the legacy `loss_making_growth` enum to Case 2 only after router and
    persistence compatibility are reviewed.
+
+Phase 1 also makes `ticker` and `kpi_key` explicit on thesis/KPI contracts and requires
+generic `KPIDirection` on KPI definitions. No persisted records exist in this repository;
+an external consumer with older serialized v0.1 records must supply those fields during
+migration instead of inventing a company-specific interpretation.

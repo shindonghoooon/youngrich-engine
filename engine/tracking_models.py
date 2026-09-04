@@ -45,6 +45,49 @@ class ResolutionState(str, Enum):
     UNRESOLVED = "unresolved"
 
 
+class ChangeState(str, Enum):
+    IMPROVED = "improved"
+    UNCHANGED = "unchanged"
+    DETERIORATED = "deteriorated"
+    RESOLVED = "resolved"
+    BECAME_UNRESOLVED = "became_unresolved"
+    NOT_COMPARABLE = "not_comparable"
+
+
+class KPIDirection(str, Enum):
+    HIGHER_IS_BETTER = "higher_is_better"
+    LOWER_IS_BETTER = "lower_is_better"
+    CUSTOM = "custom"
+    UNRESOLVED = "unresolved"
+
+
+class PriceType(str, Enum):
+    CLOSE = "close"
+    EOD = "eod"
+    DELAYED = "delayed"
+    REALTIME = "realtime"
+
+
+class ValuationChangeType(str, Enum):
+    PRICE_ONLY = "price_only"
+    ASSUMPTION_CHANGE = "assumption_change"
+    MIXED = "mixed"
+    NONE = "none"
+
+
+class GradeChangeReason(str, Enum):
+    PRICE = "price"
+    QUANT = "quant"
+    CURRENT_TREND = "current_trend"
+    NARRATIVE = "narrative"
+    FUNDING = "funding"
+    VALUATION_ASSUMPTION = "valuation_assumption"
+    THESIS_BREAKER = "thesis_breaker"
+    CASE_MIGRATION = "case_migration"
+    DATA_RESOLUTION = "data_resolution"
+    MULTIPLE = "multiple"
+
+
 class NarrativeState(str, Enum):
     PROVEN = "proven"
     STRONG = "strong"
@@ -123,10 +166,16 @@ class AsymmetryType(str, Enum):
 
 class ThesisStatus(str, Enum):
     CONFIRMING = "confirming"
-    STABLE = "stable"
+    NEUTRAL = "neutral"
     WEAKENING = "weakening"
     BROKEN = "broken"
     UNRESOLVED = "unresolved"
+
+    @classmethod
+    def _missing_(cls, value: object) -> "ThesisStatus | None":
+        if isinstance(value, str) and value.lower() == "stable":
+            return cls.NEUTRAL
+        return None
 
 
 class AdjustmentType(str, Enum):
@@ -293,6 +342,7 @@ class NarrativeSnapshot(TemporalSnapshot):
 
 class ThesisDefinition(FrozenDomainModel):
     thesis_id: str
+    ticker: str
     version: int = Field(ge=1)
     case: AnalysisCase
     title: str
@@ -311,11 +361,15 @@ class ThesisDefinition(FrozenDomainModel):
 
 class TrackingKPIDefinition(FrozenDomainModel):
     kpi_definition_id: str
+    ticker: str
+    kpi_key: str
     thesis_id: str
     thesis_version: int = Field(ge=1)
     kpi_set_version: int = Field(ge=1)
     name: str
     unit: str
+    direction: KPIDirection
+    is_primary: bool = True
     source_requirement: str
     confirming_condition: str
     weakening_condition: str
@@ -326,10 +380,12 @@ class TrackingKPIObservation(TemporalSnapshot):
     observation_id: str
     ticker: str
     kpi_definition_id: str
+    kpi_key: str
     thesis_version: int = Field(ge=1)
     kpi_set_version: int = Field(ge=1)
     state: ResolutionState
     value: float | str | bool | None = None
+    interpreted_direction: DirectionState | None = None
     source_reference: str | None = None
     note: str | None = None
 
@@ -350,7 +406,36 @@ class ThesisStatusSnapshot(TemporalSnapshot):
     kpi_set_version: int = Field(ge=1)
     observation_ids: tuple[str, ...]
     status: ThesisStatus
+    breaker_triggered: bool = False
+    material_narrative_deterioration: bool = False
     note: str | None = None
+
+
+class PriceSnapshot(FrozenDomainModel):
+    price_snapshot_id: str
+    ticker: str
+    company_id: str | None = None
+    timestamp: datetime
+    price: float = Field(gt=0)
+    currency: str = Field(min_length=3, max_length=3)
+    market_cap: float | None = Field(default=None, gt=0)
+    enterprise_value: float | None = None
+    source: str
+    price_type: PriceType
+    analysis_snapshot_id: str | None = None
+    created_at: datetime
+
+    @model_validator(mode="after")
+    def validate_price_timing(self) -> Self:
+        for field_name, value in (
+            ("timestamp", self.timestamp),
+            ("created_at", self.created_at),
+        ):
+            if value.tzinfo is None or value.utcoffset() is None:
+                raise ValueError(f"{field_name} must be timezone-aware")
+        if self.created_at < self.timestamp:
+            raise ValueError("created_at cannot precede price timestamp")
+        return self
 
 
 class AssumptionRange(FrozenDomainModel):
@@ -457,6 +542,7 @@ class ValuationSnapshot(TemporalSnapshot):
     state: ResolutionState
     market_price: float | None = Field(default=None, gt=0)
     market_cap: float | None = Field(default=None, gt=0)
+    fundamental_input_fingerprint: str | None = None
     output: ValuationOutput
 
     @model_validator(mode="after")
@@ -498,6 +584,7 @@ class ValuationSnapshot(TemporalSnapshot):
             state=self.state,
             market_price=market_price,
             market_cap=self.market_cap,
+            fundamental_input_fingerprint=self.fundamental_input_fingerprint,
             output=output,
         )
 
@@ -541,6 +628,76 @@ class SnapshotChange(FrozenDomainModel):
     current: str | int | float | bool | None = None
 
 
+class MetricDiff(FrozenDomainModel):
+    metric_key: str
+    previous_state: ResolutionState | None = None
+    current_state: ResolutionState | None = None
+    previous_value: float | str | bool | None = None
+    current_value: float | str | bool | None = None
+    previous_grade: Grade | None = None
+    current_grade: Grade | None = None
+    change: ChangeState
+
+
+class SignalDiff(FrozenDomainModel):
+    signal_key: str
+    previous: DirectionState | None = None
+    current: DirectionState | None = None
+    change: ChangeState
+
+
+class NarrativeDiff(FrozenDomainModel):
+    dimension: str
+    previous: NarrativeState | None = None
+    current: NarrativeState | None = None
+    change: ChangeState
+
+
+class FlagDiff(FrozenDomainModel):
+    flag: TrendFlag
+    previous: bool
+    current: bool
+    material: bool
+
+
+class GradeChangeAttribution(FrozenDomainModel):
+    previous_grade: InvestmentGrade | None = None
+    current_grade: InvestmentGrade | None = None
+    reasons: frozenset[GradeChangeReason] = frozenset()
+
+
+class PriceChange(FrozenDomainModel):
+    ticker: str
+    previous_timestamp: datetime
+    current_timestamp: datetime
+    previous_price: float
+    current_price: float
+    absolute_change: float
+    return_ratio: float
+    market_cap_change: float | None = None
+    enterprise_value_change: float | None = None
+
+
+class EntryZoneBand(FrozenDomainModel):
+    band: ExitMultipleBand
+    exit_multiple: float = Field(gt=0)
+    maximum_market_cap: float | None = Field(default=None, gt=0)
+    entry_price: float | None = Field(default=None, gt=0)
+
+
+class EntryZoneResult(FrozenDomainModel):
+    ticker: str
+    valuation_assumption_set_id: str
+    valuation_assumption_version: int = Field(ge=1)
+    target_state: ExpectationGap
+    bands: tuple[EntryZoneBand, ...]
+    currency: str = Field(min_length=3, max_length=3)
+    required_return: float
+    horizon_years: int = Field(gt=0)
+    plausible_growth_used: float
+    rationale: str
+
+
 class SnapshotDiff(FrozenDomainModel):
     previous_snapshot_id: str
     current_snapshot_id: str
@@ -550,6 +707,16 @@ class SnapshotDiff(FrozenDomainModel):
     current_kpi_definition_ids: tuple[str, ...]
     narrative_kpi_set_changed: bool
     changes: tuple[SnapshotChange, ...] = ()
+    ticker: str | None = None
+    previous_as_of: datetime | None = None
+    current_as_of: datetime | None = None
+    metric_changes: tuple[MetricDiff, ...] = ()
+    signal_changes: tuple[SignalDiff, ...] = ()
+    narrative_changes: tuple[NarrativeDiff, ...] = ()
+    flag_changes: tuple[FlagDiff, ...] = ()
+    valuation_change_type: ValuationChangeType = ValuationChangeType.NONE
+    grade_attribution: GradeChangeAttribution | None = None
+    material_changes: tuple[str, ...] = ()
 
     @model_validator(mode="after")
     def prevent_silent_narrative_kpi_change(self) -> Self:
@@ -609,6 +776,8 @@ class AnalysisSnapshot(TemporalSnapshot):
     thesis_status: ThesisStatusSnapshot | None = None
     valuation: ValuationSnapshot | None = None
     investment_grade: InvestmentGradeSnapshot | None = None
+    narrative_gate: NarrativeGate | None = None
+    reference_price_snapshot_id: str | None = None
 
     @model_validator(mode="after")
     def validate_component_identity_and_timing(self) -> Self:
