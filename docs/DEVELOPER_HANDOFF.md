@@ -114,9 +114,10 @@ The independent audit response subsequently passed locally on 2026-09-06:
 - Remote `Offline validation` CI: PASS on audit commit `dcd9090`
 - Main branch-protection settings: unverified; unauthenticated API returned 401
 
-The final audit follow-up is locally complete and awaiting its feature-branch CI:
+The final audit follow-up passed locally and on the feature branch:
 
 - Full suite: 451 passed
+- GitHub Actions `Offline validation`: PASS on `225c5a7`, run `33980146724`
 - Direct IG v1.1 validates the exact Case/version/Core 8 or Core 6 contract; genuine
   omissions become structured `U`, while reweighting, supporting disguise, fake Core,
   Case/version mismatch, and contradictory state are rejected

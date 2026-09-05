@@ -1,6 +1,6 @@
 # Limited Operating Independent Audit Response
 
-Status: VALIDATION — FOLLOW-UP LOCAL PASS / REMOTE CI PENDING / LIVE PENDING
+Status: VALIDATION — FOLLOW-UP LOCAL/REMOTE CI PASS / LIVE PENDING
 
 Authoritative for Results: YES
 
@@ -40,8 +40,8 @@ Local results after the final audit follow-up:
 - Case 2 Golden validation: unchanged and passing
 - Frozen policy specification tests: unchanged and passing
 - DB migration: unchanged
-- Prior GitHub Actions `Offline validation`: PASS through feature checkpoint `a349af9`
-- Final follow-up feature HEAD CI: pending push
+- GitHub Actions `Offline validation`: PASS on follow-up commit `225c5a7`
+  ([run 33980146724](https://github.com/shindonghoooon/youngrich-engine/actions/runs/33980146724))
 
 Direct IG v1.1 reproduction uses actual Case 1 Core 8 and Case 2 Core 6 builder output.
 Removing each Core produces `U` with the missing metric identified. Reweighting the
@@ -75,9 +75,10 @@ The approved Case 2 shareholder-comparability provisional exception remains unch
 
 - No Tiingo credential was present during local validation. STRL, TEM, and LPTH live
   execution remains `PENDING_CREDENTIAL` for session 2026-09-04.
-- Remote CI passed through `a349af9`; final follow-up CI awaits the approved feature push.
-  The unauthenticated GitHub branch-protection API returned 401, so actual main protection
-  settings remain `UNKNOWN/PENDING_OWNER` rather than being treated as unprotected.
+- Remote CI passed on follow-up commit `225c5a7`. The classic branch-protection endpoint
+  returned 401 and the publicly visible repository-ruleset list was empty; this does not
+  prove that main lacks protection. PR requirement and required-check designation remain
+  `UNKNOWN/PENDING_OWNER` pending an authenticated owner review.
 - M12-B1 remains BLOCKED. This work does not solve historical universe membership,
   delisted continuity, terminal payoff, or production data licensing.
 - Historical records without fingerprints or v0.2 input-scope fields remain readable,
