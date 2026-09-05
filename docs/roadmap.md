@@ -6,7 +6,7 @@ Authoritative for Milestone State: YES
 
 Authoritative for Investment Rules: NO
 
-Last Updated: 2026-09-04
+Last Updated: 2026-09-06
 
 Allowed milestone states are `COMPLETE`, `ACTIVE`, `PLANNED`, `BLOCKED`, and
 `DEFERRED`. Frozen formulas live in [specifications](specs/), not in this roadmap.
@@ -15,7 +15,8 @@ Allowed milestone states are `COMPLETE`, `ACTIVE`, `PLANNED`, `BLOCKED`, and
 
 - Latest completed milestone: **M12-A Universal Calibration Kernel**
 - Current milestone: **M12-B0 Free-First Data Pilot — ACTIVE / DATA GATE**
-- Parallel future product track: **M13–M15 — PLANNED**
+- Parallel product pilot: **STRL/TEM/LPTH limited operating connection — ACTIVE / DEMO**
+- Future product track: **M13–M15 — PLANNED**
 - Case expansion: **M16 — DEFERRED**
 
 M12-A is complete and frozen. M12-B0 found no validated free historical-security
@@ -201,6 +202,22 @@ Before full implementation, explicitly approve:
 
 No agent may silently invent these choices. See the
 [research plan](research/systematic-backtest-plan.md).
+
+## Limited Operating Connection Pilot
+
+- Status: ACTIVE — DEMO/VALIDATION
+- Goal: connect the existing STRL/TEM/LPTH analyses, append-only SQLite identity/history,
+  exact-session Tiingo RAW closes, version-preserving Valuation, explicitly selected IG
+  v1.1, and structured price-only comparison through one local CLI.
+- Deliverables: idempotent seed and price import, immutable local evaluation artifact,
+  JSON/human output, and offline integration tests.
+- Entry criteria: M4, M8, M9, and the bounded Tiingo research path complete.
+- Exit criteria: three reference analyses round-trip, v1 replay remains intact, v1.1 is
+  explicitly recorded, and missing evidence remains `U`.
+- Non-goals: M12-B1 unblocking, production provider approval, realtime prices, new
+  investment rules, migration, API, dashboard, or mobile UI.
+
+Execution guide: [Limited Operating Flow](limited-operating-flow.md).
 
 ## M13 EOD Data Layer
 

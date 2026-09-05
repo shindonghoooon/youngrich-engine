@@ -1,8 +1,8 @@
 # Developer Handoff
 
-Last Updated: 2026-09-05
+Last Updated: 2026-09-06
 
-Status: INTEGRATION CHECKPOINT
+Status: LIMITED OPERATING FLOW — IMPLEMENTATION REVIEW
 
 This file is a short execution handoff. Frozen specifications and executable tests remain
 authoritative; validation fixtures are not current investment recommendations.
@@ -10,6 +10,8 @@ authoritative; validation fixtures are not current investment recommendations.
 ## Repository State
 
 - Repository: `D:\youngrich-engine\youngrich-engine`
+- Current feature branch: `feat/limited-operating-flow`
+- Feature base: `82af10f1365bf313d211853f135d85fe5d05f29e`
 - B0/Tiingo branch: `main`
 - B0/Tiingo checkpoint: `858ca72176c013113b1e0c9d37d46dee6f8b2fbc`
 - Safety worktree: `D:\youngrich-engine\youngrich-engine-decision-safety-v1_1`
@@ -53,7 +55,7 @@ Read:
 - `docs/validation/m12-b0-free-data-pilot-v0.1.md`
 
 Authentication is read only from the `TIINGO_API_TOKEN` operating-system environment
-variable. The token is not present in the current integration shell. Its value must never
+variable. The token is not present in the current developer shell. Its value must never
 be printed or committed. The code does not automatically load `.env` files.
 
 Provider responses and pilot summaries are cached under ignored
@@ -90,9 +92,25 @@ The integrated worktree passed the following checks on 2026-09-05:
 - Unstaged and staged diff checks: PASS
 - Secret literal and local raw-cache staging checks: PASS
 
+The limited operating feature branch passed the following checks on 2026-09-06:
+
+- Full suite: 393 passed
+- Limited operating flow: 14 passed
+- Documentation consistency: 7 passed
+- Exact-session CLI smoke for 2026-09-04: STRL, TEM, and LPTH all returned
+  `PENDING_CREDENTIAL` without creating a price or evaluation
+- Tiingo credential detected: NO
+- Unstaged diff and untracked-file whitespace checks: PASS
+- Secret literal and ignored local-artifact checks: PASS
+
 ## Next Product Task
 
-Build one limited operating vertical slice for STRL, TEM, and LPTH:
+The limited operating vertical slice for STRL, TEM, and LPTH is now implemented for
+review. Read `docs/limited-operating-flow.md` and run the documented CLI. The current
+shell has no Tiingo credential, so live verification remains `PENDING_CREDENTIAL`; the
+offline implementation and regression tests are the review evidence.
+
+Implemented flow:
 
 ```text
 existing official fixture / analysis
@@ -110,7 +128,13 @@ valuation/evaluation while preserving the assumption version. Valuation uses the
 with matching share/EPS scope, while performance uses a consistent adjusted price basis and
 version.
 
-Start with the smallest executable connection among existing functions. A minimal mobile
-query view comes only after this path works. Do not add realtime prices, broker integration,
-a new provider, a full historical universe, automatic threshold changes, a new Case, or a
-large systematic backtest in the next task.
+SQLite stores identity, immutable reference analyses, assumptions, and RAW prices. Because
+the frozen schema has no independent price-only evaluation root, derived Valuation/IG and
+comparisons are append-only ignored JSONL artifacts rather than fake AnalysisSnapshots. No
+migration or investment-policy change was made.
+
+Review must confirm the full suite, docs and diff checks before any commit. After this
+checkpoint is accepted, the next product task is the minimum mobile/read-only view over
+this output contract. Do not add realtime prices, broker integration, a new provider, a
+full historical universe, automatic threshold changes, a new Case, or a large systematic
+backtest.

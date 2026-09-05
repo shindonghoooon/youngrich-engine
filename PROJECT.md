@@ -2,7 +2,7 @@
 
 Status: ACTIVE PROJECT INDEX
 
-Last Updated: 2026-09-05
+Last Updated: 2026-09-06
 
 ## Mission
 
@@ -87,6 +87,11 @@ EOD Market Data → API → Dashboard → PWA / Alerts
 No production provider or product technology has been selected. Tiingo is approved only
 for the bounded research and limited operating pilot described above.
 
+The parallel product track is now implementing a bounded
+[STRL/TEM/LPTH operating connection](docs/limited-operating-flow.md) on branch
+`feat/limited-operating-flow`. It is `DEMO/VALIDATION`, does not unblock M12-B1, and does
+not authorize a production feed or UI.
+
 ## Frozen Components
 
 These documents marked `FROZEN` are authoritative for production behavior:
@@ -150,7 +155,8 @@ Frozen code/spec output overrides earlier manual-memory estimates:
 - ONDS Investment Grade = **C**
 - EROC Current Trend = **NEUTRAL**
 
-These are correction records, not new rules.
+These are v1 validation-fixture correction records, not v1.1 outputs, current company
+grades, recommendations, or new rules.
 
 ## Open Decisions
 
@@ -174,6 +180,7 @@ the same historical validation protocol.
 ## Documentation Map
 
 - [Developer handoff](docs/DEVELOPER_HANDOFF.md) — current checkpoint and next execution point
+- [Limited operating flow](docs/limited-operating-flow.md) — STRL/TEM/LPTH DEMO/VALIDATION CLI
 - [Roadmap](docs/roadmap.md) — milestone status, next work, and open decision gates
 - [Architecture](docs/architecture.md) — stable system boundaries and data flow
 - [Frozen specifications](docs/specs/) — authoritative rules and contracts
