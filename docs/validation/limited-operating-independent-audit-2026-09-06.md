@@ -1,6 +1,6 @@
 # Limited Operating Independent Audit Response
 
-Status: VALIDATION — LOCAL PASS / REMOTE CI PENDING
+Status: VALIDATION — LOCAL AND REMOTE CI PASS / LIVE PENDING
 
 Authoritative for Results: YES
 
@@ -40,6 +40,7 @@ Local results after the audit response:
 - Case 2 Golden validation: unchanged and passing
 - Frozen policy specification tests: unchanged and passing
 - DB migration: unchanged
+- GitHub Actions `Offline validation`: PASS for audit commit `dcd9090`
 
 The actual builder → SQLite store → new-session restore → snapshot comparison matrix covers:
 
@@ -58,7 +59,8 @@ The approved Case 2 shareholder-comparability provisional exception remains unch
 
 - No Tiingo credential was present during local validation. STRL, TEM, and LPTH live
   execution remains `PENDING_CREDENTIAL` for session 2026-09-04.
-- Remote CI and repository branch-protection status must be checked after push.
+- Remote CI passed. The unauthenticated GitHub branch-protection API returned 401, so
+  actual main protection settings remain unverified and require repository permission.
 - M12-B1 remains BLOCKED. This work does not solve historical universe membership,
   delisted continuity, terminal payoff, or production data licensing.
 - Historical records without fingerprints or v0.2 input-scope fields remain readable,

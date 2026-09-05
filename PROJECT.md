@@ -143,7 +143,7 @@ and historical discussion. Changes require an explicit design decision and versi
 - [Investment Grade Decision Safety v1.1](docs/validation/decision-safety-v1.1.md): PASS
 - [Tiingo Data Pilot v0.1](docs/validation/m12-b0.1-tiingo-data-pilot-v0.1.md): PASS WITH GAPS
 - Calculation, Tracking, Persistence, and Performance regression: PASS
-- Limited operating independent audit: LOCAL PASS / REMOTE CI PENDING
+- Limited operating independent audit: LOCAL AND REMOTE CI PASS / LIVE PENDING
 - [Historical Stress Calibration v0.1](docs/validation/historical-performance-stress-calibration-v0.1.md): COMPLETE, outcome-aware only
 - Systematic unbiased backtest: NOT YET COMPLETE
 

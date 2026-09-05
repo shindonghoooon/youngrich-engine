@@ -111,7 +111,8 @@ The independent audit response subsequently passed locally on 2026-09-06:
   fundamentals, shares, assumptions, policy, mixed, and missing-fingerprint cases
 - Existing Case 2 Golden and frozen-policy regressions: PASS
 - Tiingo live state: `PENDING_CREDENTIAL`
-- Remote CI and branch-protection verification: pending feature-branch push
+- Remote `Offline validation` CI: PASS on audit commit `dcd9090`
+- Main branch-protection settings: unverified; unauthenticated API returned 401
 
 ## Next Product Task
 
