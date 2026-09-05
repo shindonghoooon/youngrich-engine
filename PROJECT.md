@@ -69,9 +69,14 @@ label. Case 3–6 definitions are not implementation authorization.
 **Current milestone: M12-B Case 1/2 Quant Systematic Test — ACTIVE DATA PILOT**
 
 M12-A is COMPLETE / FROZEN and establishes a common, Case-agnostic calibration kernel
-over immutable Analysis and Performance snapshots. M12-B0 now tests free-data
-feasibility; full M12-B1 systematic execution cannot begin until Universe,
-US-versus-Korea scope, Snapshot Cadence, Historical Range, Fundamentals Source,
+over immutable Analysis and Performance snapshots. The 2026-09-04 M12-B0
+[free-data pilot](docs/validation/m12-b0-free-data-pilot-v0.1.md) returned a **FAIL entry
+verdict** because no tested free source established historical security membership and
+delisted continuity. The M12-B0.1
+[Tiingo price follow-up](docs/research/tiingo-data-pilot-v0.1.md) is
+**LIVE PRICE PILOT PASS WITH GAPS** and does not change that verdict. Full M12-B1
+systematic execution cannot begin until that blocker,
+Universe, US-versus-Korea scope, Snapshot Cadence, Historical Range, Fundamentals Source,
 Market/Delisting Source, Benchmark Policy, and Narrative Mode v1 are explicitly
 approved. The parallel future product track is:
 
@@ -116,7 +121,8 @@ and historical discussion. Changes require an explicit design decision and versi
 | Append-only persistence and Alembic schema | COMPLETE |
 | Performance horizons, MDD coverage, benchmark alpha, and cohorts | COMPLETE |
 | Generic Calibration Kernel M12-A | COMPLETE / FROZEN |
-| M12-B0 free-first data pilot | ACTIVE |
+| M12-B0 free-first data pilot | COMPLETE WITH FAIL ENTRY VERDICT |
+| M12-B0.1 Tiingo free-price pilot | COMPLETE / LIVE PRICE PATH PASS WITH GAPS |
 | Systematic unbiased historical backtest | NOT IMPLEMENTED |
 | Production EOD ingestion/API/dashboard/PWA | NOT IMPLEMENTED |
 | Case 3–6 engines | NOT IMPLEMENTED |

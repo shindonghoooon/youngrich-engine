@@ -13,13 +13,14 @@ Allowed milestone states are `COMPLETE`, `ACTIVE`, `PLANNED`, `BLOCKED`, and
 
 ## Current state
 
-- Latest completed milestone: **M11 Historical Stress Calibration**
-- Current milestone: **M12 Generic Backtest & Calibration Framework — ACTIVE / DESIGN**
+- Latest completed milestone: **M12-A Universal Calibration Kernel**
+- Current milestone: **M12-B0 Free-First Data Pilot — ACTIVE / DATA GATE**
 - Parallel future product track: **M13–M15 — PLANNED**
 - Case expansion: **M16 — DEFERRED**
 
-M12-A minimal architecture/kernel work is active. M12-B systematic universe execution
-remains blocked on its eight data/universe decisions.
+M12-A is complete and frozen. M12-B0 found no validated free historical-security
+membership crosswalk, so M12-B1 remains blocked rather than using a survivor-only
+universe. See the [B0 validation](validation/m12-b0-free-data-pilot-v0.1.md).
 
 ## M0 Project Framework
 
@@ -170,6 +171,9 @@ See [Historical Stress Calibration v0.1](validation/historical-performance-stres
 
 1. **M12-A — Universal Calibration Kernel: COMPLETE / FROZEN**
 2. **M12-B — Case 1/2 Quant Systematic Test: ACTIVE — DATA PILOT**
+   - B0 free-first universe pilot: COMPLETE WITH FAIL ENTRY VERDICT
+   - B0.1 Tiingo free-price pilot: COMPLETE / LIVE PRICE PATH PASS WITH GAPS
+   - B1 systematic execution: BLOCKED
 3. **M12-C — Current Overlay Incremental Test: PLANNED**
 4. **M12-D — Valuation / Expectation Gap Incremental Test: PLANNED**
 5. **M12-E — Narrative / Full Investment Grade Subset Test: PLANNED**
@@ -177,6 +181,8 @@ See [Historical Stress Calibration v0.1](validation/historical-performance-stres
 
 Architecture: [Generic Calibration Framework](specs/calibration-framework-v1.md).
 Systematic universe/provider detail: [M12-B research plan](research/systematic-backtest-plan.md).
+B0 source evidence: [Free-First Data Pilot](research/free-data-pilot-v1.md).
+Tiingo follow-up: [M12-B0.1 Tiingo Data Pilot](research/tiingo-data-pilot-v0.1.md).
 
 ### M12-B implementation decision gate
 
