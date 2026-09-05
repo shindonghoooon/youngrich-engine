@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+import json
 from datetime import date, datetime
+from hashlib import sha256
+from typing import Self
+
+from pydantic import model_validator
 
 from engine.tracking_models import (
     AnalysisCase,
@@ -31,6 +36,13 @@ class ValuationEvidenceState(FrozenDomainModel):
     credible_evidence_count: int
     company_economics_stable: bool
     company_economics_rapidly_changing: bool
+    available_at: datetime
+
+    @model_validator(mode="after")
+    def validate_available_at(self) -> Self:
+        if self.available_at.tzinfo is None or self.available_at.utcoffset() is None:
+            raise ValueError("valuation evidence available_at must be timezone-aware")
+        return self
 
 
 class ValuationIdentity(FrozenDomainModel):
@@ -39,6 +51,43 @@ class ValuationIdentity(FrozenDomainModel):
     period_end: date
     available_at: datetime
     as_of: datetime
+
+
+VALUATION_INPUT_FINGERPRINT_VERSION = "valuation-input-v1"
+
+
+def valuation_input_fingerprint(
+    *,
+    identity: ValuationIdentity,
+    current_eps: float | None = None,
+    current_revenue: float | None = None,
+    current_share_count: float | None = None,
+) -> str:
+    """Hash deterministic fundamental valuation inputs, never price or run metadata."""
+    if current_eps is None and current_revenue is None:
+        raise ValueError("a valuation fundamental input is required")
+    payload = {
+        "version": VALUATION_INPUT_FINGERPRINT_VERSION,
+        "ticker": identity.ticker,
+        "period_end": identity.period_end.isoformat(),
+        "current_eps": current_eps,
+        "current_revenue": current_revenue,
+        "current_share_count": current_share_count,
+        "accounting_scope": "reported_gaap",
+    }
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _validate_valuation_evidence_timing(
+    identity: ValuationIdentity,
+    assumptions: ValuationAssumptionSet,
+    evidence: ValuationEvidenceState,
+) -> None:
+    if evidence.available_at > identity.as_of:
+        raise ValueError("valuation evidence is not available at valuation as_of")
+    if any(item.as_of > identity.as_of for item in assumptions.exit_multiples):
+        raise ValueError("exit-multiple evidence is not available at valuation as_of")
 
 
 def _range(values: list[float]) -> AssumptionRange:
@@ -61,6 +110,7 @@ def build_case1_valuation(
         raise ValueError("Case 1 v1 calculation engine supports PE only")
     if required_return not in assumptions.required_return_sensitivities:
         raise ValueError("required_return must be a configured sensitivity")
+    _validate_valuation_evidence_timing(identity, assumptions, evidence)
     cases = tuple(
         RequiredGrowthCase(
             band=multiple.band,
@@ -101,6 +151,10 @@ def build_case1_valuation(
         assumption_set=assumptions,
         state=ResolutionState.RESOLVED,
         market_price=current_price,
+        fundamental_input_fingerprint=valuation_input_fingerprint(
+            identity=identity,
+            current_eps=current_eps,
+        ),
         output=output,
     )
 
@@ -110,7 +164,9 @@ def build_case2_valuation(
     identity: ValuationIdentity,
     assumptions: ValuationAssumptionSet,
     current_market_cap: float,
+    current_price: float,
     current_revenue: float,
+    current_share_count: float,
     required_return: float,
     evidence: ValuationEvidenceState,
     asymmetry_type: AsymmetryType,
@@ -119,6 +175,11 @@ def build_case2_valuation(
         raise ValueError("Case 2 valuation requires Case 2 assumptions")
     if required_return not in assumptions.required_return_sensitivities:
         raise ValueError("required_return must be a configured sensitivity")
+    if current_share_count <= 0:
+        raise ValueError("current_share_count must be positive")
+    if current_price <= 0:
+        raise ValueError("current_price must be positive")
+    _validate_valuation_evidence_timing(identity, assumptions, evidence)
     future_equity = case2_required_future_equity_value(
         current_market_cap=current_market_cap,
         required_return=required_return,
@@ -180,6 +241,12 @@ def build_case2_valuation(
         **identity.model_dump(),
         assumption_set=assumptions,
         state=ResolutionState.RESOLVED,
+        market_price=current_price,
         market_cap=current_market_cap,
+        fundamental_input_fingerprint=valuation_input_fingerprint(
+            identity=identity,
+            current_revenue=current_revenue,
+            current_share_count=current_share_count,
+        ),
         output=output,
     )

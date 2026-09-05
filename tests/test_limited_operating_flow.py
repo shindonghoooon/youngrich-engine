@@ -21,10 +21,12 @@ from engine.persistence.repositories import AnalysisRepository, PriceRepository
 from engine.persistence.session import create_session_factory, create_sqlite_engine
 from engine.tracking_models import (
     AsymmetryType,
+    BinaryEvidenceState,
     InvestmentGrade,
     InvestmentGradePolicyVersion,
     PriceBasis,
     TrendFlag,
+    TrendFlagResult,
 )
 from research.limited_operating_flow import main as cli_main
 
@@ -222,10 +224,44 @@ def test_policy_change_is_never_reported_as_price_only(operating):
     assert diff.policy_version_unchanged is False
 
 
+def test_input_scope_change_is_never_reported_as_price_only(operating):
+    operating.seed_demo(("TEM",))
+    first = store_and_revalue(
+        operating, "TEM", date(2026, 9, 2), 60.0, suffix="scope-first"
+    )
+    second = store_and_revalue(
+        operating, "TEM", date(2026, 9, 3), 61.0, suffix="scope-second"
+    )
+    altered = second.model_copy(
+        update={
+            "evaluation_id": f"{second.evaluation_id}-different-unit",
+            "financial_unit": "USD millions",
+        }
+    )
+    operating.artifacts.append(altered)
+
+    diff = operating.compare_evaluations(first.evaluation_id, altered.evaluation_id)
+    assert diff.change_type == EvaluationChangeType.INPUT_SCOPE_CHANGE
+    assert diff.input_scope_unchanged is False
+
+
 def test_funding_stress_cap_survives_a_lower_price(operating, monkeypatch):
     profile = operating.profile("TEM")
     stressed_current = profile.analysis.current_trend.model_copy(
-        update={"flags": profile.analysis.current_trend.flags | {TrendFlag.FUNDING_STRESS}}
+        update={
+            "flags": profile.analysis.current_trend.flags | {TrendFlag.FUNDING_STRESS},
+            "flag_results": tuple(
+                TrendFlagResult(
+                    flag=item.flag,
+                    state=(
+                        BinaryEvidenceState.YES
+                        if item.flag == TrendFlag.FUNDING_STRESS
+                        else item.state
+                    ),
+                )
+                for item in profile.analysis.current_trend.flag_results
+            ),
+        }
     )
     stressed_analysis = profile.analysis.model_copy(
         update={"current_trend": stressed_current}

@@ -8,7 +8,7 @@ from typing import Generic, Protocol, TypeVar
 from pydantic import model_validator
 
 from engine.calibration_engine import HistoricalAnalysisLike
-from engine.case1_snapshot import build_case1_snapshot
+from engine.case1_snapshot import build_case1_snapshot, validate_case1_core_metrics
 from engine.case2_analysis import Case2AnalysisInput, build_case2_analysis
 from engine.case2_policy import EligibilityState
 from engine.case2_quant import Case2QuantInput, build_case2_quant
@@ -113,6 +113,7 @@ class Case1BacktestAdapter:
             )
             for metric in existing.metrics
         )
+        validate_case1_core_metrics(metrics)
         resolved_count = sum(
             metric.state == ResolutionState.RESOLVED for metric in metrics
         )

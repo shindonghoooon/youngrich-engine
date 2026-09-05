@@ -102,7 +102,10 @@ class AlphaComparisonIssue(str, Enum):
 class ValuationChangeType(str, Enum):
     PRICE_ONLY = "price_only"
     ASSUMPTION_CHANGE = "assumption_change"
+    FUNDAMENTAL_CHANGE = "fundamental_change"
+    POLICY_CHANGE = "policy_change"
     MIXED = "mixed"
+    UNRESOLVED = "unresolved"
     NONE = "none"
 
 
@@ -113,6 +116,8 @@ class GradeChangeReason(str, Enum):
     NARRATIVE = "narrative"
     FUNDING = "funding"
     VALUATION_ASSUMPTION = "valuation_assumption"
+    VALUATION_INPUT = "valuation_input"
+    POLICY = "policy"
     THESIS_BREAKER = "thesis_breaker"
     CASE_MIGRATION = "case_migration"
     DATA_RESOLUTION = "data_resolution"
@@ -149,6 +154,12 @@ class TrendFlag(str, Enum):
     COMMERCIAL_INFLECTION = "commercial_inflection"
     FUNDING_STRESS = "funding_stress"
     COMMERCIAL_DETERIORATION = "commercial_deterioration"
+
+
+class BinaryEvidenceState(str, Enum):
+    YES = "yes"
+    NO = "no"
+    UNKNOWN = "unknown"
 
 
 class GrowthScope(str, Enum):
@@ -328,6 +339,11 @@ class CurrentTrendSignal(FrozenDomainModel):
     observation: str | None = None
 
 
+class TrendFlagResult(FrozenDomainModel):
+    flag: TrendFlag
+    state: BinaryEvidenceState
+
+
 class CurrentTrendSnapshot(TemporalSnapshot):
     snapshot_id: str
     ticker: str
@@ -336,6 +352,7 @@ class CurrentTrendSnapshot(TemporalSnapshot):
     signals: tuple[CurrentTrendSignal, ...]
     overall: DirectionState
     flags: frozenset[TrendFlag] = frozenset()
+    flag_results: tuple[TrendFlagResult, ...] = ()
     growth_scope: GrowthScope | None = None
     annual_quant_grade_reference: Grade | None = None
 
@@ -344,6 +361,17 @@ class CurrentTrendSnapshot(TemporalSnapshot):
         names = [signal.name for signal in self.signals]
         if len(names) != len(set(names)):
             raise ValueError("current signal names must be unique")
+        flag_names = [item.flag for item in self.flag_results]
+        if len(flag_names) != len(set(flag_names)):
+            raise ValueError("current flag results must be unique")
+        if self.flag_results:
+            active = frozenset(
+                item.flag
+                for item in self.flag_results
+                if item.state == BinaryEvidenceState.YES
+            )
+            if active != self.flags:
+                raise ValueError("flags must contain exactly the YES flag results")
         return self
 
 
@@ -496,6 +524,12 @@ class ExitMultipleAssumption(FrozenDomainModel):
     source_reference: str
     as_of: datetime
     rationale: str
+
+    @model_validator(mode="after")
+    def validate_evidence_timing(self) -> Self:
+        if self.as_of.tzinfo is None or self.as_of.utcoffset() is None:
+            raise ValueError("exit-multiple evidence as_of must be timezone-aware")
+        return self
 
 
 class ValuationAssumptionSet(FrozenDomainModel):
@@ -694,8 +728,9 @@ class NarrativeDiff(FrozenDomainModel):
 
 class FlagDiff(FrozenDomainModel):
     flag: TrendFlag
-    previous: bool
-    current: bool
+    previous: bool | None
+    current: bool | None
+    change: ChangeState
     material: bool
 
 

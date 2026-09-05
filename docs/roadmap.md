@@ -213,7 +213,10 @@ No agent may silently invent these choices. See the
   JSON/human output, and offline integration tests.
 - Entry criteria: M4, M8, M9, and the bounded Tiingo research path complete.
 - Exit criteria: three reference analyses round-trip, v1 replay remains intact, v1.1 is
-  explicitly recorded, and missing evidence remains `U`.
+  explicitly recorded, missing evidence remains `U`, and the independent audit/remote CI
+  approval gate passes.
+- Audit status: local 428-test regression and 31-test reproduction matrix PASS; remote CI
+  and live Tiingo execution remain pending.
 - Non-goals: M12-B1 unblocking, production provider approval, realtime prices, new
   investment rules, migration, API, dashboard, or mobile UI.
 

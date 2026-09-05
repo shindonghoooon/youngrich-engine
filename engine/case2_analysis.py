@@ -40,7 +40,9 @@ class Case2AnalysisInput(FrozenDomainModel):
     current: Case2CurrentInput
     valuation_assumptions: ValuationAssumptionSet
     current_market_cap: float
+    current_price: float
     current_revenue: float
+    current_share_count: float
     required_return: float
     valuation_evidence: ValuationEvidenceState
     asymmetry_type: AsymmetryType
@@ -78,7 +80,9 @@ def build_case2_analysis(inputs: Case2AnalysisInput) -> AnalysisSnapshot:
         ),
         assumptions=inputs.valuation_assumptions,
         current_market_cap=inputs.current_market_cap,
+        current_price=inputs.current_price,
         current_revenue=inputs.current_revenue,
+        current_share_count=inputs.current_share_count,
         required_return=inputs.required_return,
         evidence=inputs.valuation_evidence,
         asymmetry_type=inputs.asymmetry_type,

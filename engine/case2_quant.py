@@ -7,8 +7,10 @@ from typing import Self
 
 from pydantic import Field, model_validator
 
+from engine.annual_periods import validate_annual_periods
 from engine.case2_policy import (
     CASE2_CORE_WEIGHTS,
+    CASE2_SHAREHOLDER_OPTIONAL_METRICS,
     EligibilityState,
     actual_share_growth,
     cagr_2y,
@@ -69,12 +71,37 @@ class Case2QuantInput(FrozenDomainModel):
             raise ValueError("periods must be sorted by fiscal_period_end")
         if self.period_end != self.periods[-1].fiscal_period_end:
             raise ValueError("period_end must match the latest annual period")
+        validate_annual_periods(self.periods)
         return self
 
 
 class Case2QuantResult(FrozenDomainModel):
     eligibility: EligibilityState
     snapshot: QuantSnapshot
+
+
+def validate_case2_quant_snapshot(snapshot: QuantSnapshot) -> None:
+    """Validate the frozen Core 6 and its approved shareholder-data exception."""
+    core = tuple(metric for metric in snapshot.metrics if metric.is_core)
+    names = [metric.name for metric in core]
+    if len(names) != len(set(names)) or set(names) != set(CASE2_CORE_WEIGHTS):
+        raise ValueError("Case 2 Quant requires exactly the frozen Core 6")
+    for metric in core:
+        if abs(metric.weight - CASE2_CORE_WEIGHTS[metric.name]) > 1e-12:
+            raise ValueError("Case 2 Core metric weight does not match frozen policy")
+        if metric.state == ResolutionState.RESOLVED and metric.grade is None:
+            raise ValueError("resolved Case 2 Core metric requires a grade")
+    unresolved = {
+        metric.name for metric in core if metric.state == ResolutionState.UNRESOLVED
+    }
+    if unresolved - CASE2_SHAREHOLDER_OPTIONAL_METRICS:
+        if snapshot.state == ResolutionState.RESOLVED:
+            raise ValueError("mandatory Case 2 Core metrics cannot be unresolved")
+    if snapshot.state == ResolutionState.RESOLVED and unresolved:
+        if not snapshot.provisional:
+            raise ValueError("shareholder-comparability exception must be provisional")
+        if not unresolved.issubset(CASE2_SHAREHOLDER_OPTIONAL_METRICS):
+            raise ValueError("only shareholder metrics may be unresolved provisionally")
 
 
 def _fcf(period: Case2AnnualPeriod) -> float | None:
@@ -312,4 +339,5 @@ def build_case2_quant(inputs: Case2QuantInput) -> Case2QuantResult:
         coverage=evaluation.coverage,
         provisional=evaluation.provisional if eligible_and_resolved else False,
     )
+    validate_case2_quant_snapshot(snapshot)
     return Case2QuantResult(eligibility=eligibility, snapshot=snapshot)

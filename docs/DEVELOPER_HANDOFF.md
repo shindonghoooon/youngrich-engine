@@ -103,6 +103,16 @@ The limited operating feature branch passed the following checks on 2026-09-06:
 - Unstaged diff and untracked-file whitespace checks: PASS
 - Secret literal and ignored local-artifact checks: PASS
 
+The independent audit response subsequently passed locally on 2026-09-06:
+
+- Full suite: 428 passed
+- New audit reproduction/integration tests: 31 passed
+- Actual builder → SQLite store → new-session restore → comparison: PASS for price,
+  fundamentals, shares, assumptions, policy, mixed, and missing-fingerprint cases
+- Existing Case 2 Golden and frozen-policy regressions: PASS
+- Tiingo live state: `PENDING_CREDENTIAL`
+- Remote CI and branch-protection verification: pending feature-branch push
+
 ## Next Product Task
 
 The limited operating vertical slice for STRL, TEM, and LPTH is now implemented for
@@ -133,7 +143,8 @@ the frozen schema has no independent price-only evaluation root, derived Valuati
 comparisons are append-only ignored JSONL artifacts rather than fake AnalysisSnapshots. No
 migration or investment-policy change was made.
 
-Review must confirm the full suite, docs and diff checks before any commit. After this
+Review must confirm the full suite, docs, independent audit, remote CI, and diff checks
+before main merge. After this
 checkpoint is accepted, the next product task is the minimum mobile/read-only view over
 this output contract. Do not add realtime prices, broker integration, a new provider, a
 full historical universe, automatic threshold changes, a new Case, or a large systematic

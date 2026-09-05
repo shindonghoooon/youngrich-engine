@@ -1,6 +1,8 @@
+import pytest
+
 from engine.cases.profitable_growth import grade_cash_conversion, reinvestment_intensity
 from engine.models import CaseType, Grade, MetricResult
-from engine.router import RouterInput, route_case
+from engine.router import RouterInput, require_implemented_case, route_case
 from engine.scoring import weighted_quant_score, quant_grade
 
 
@@ -43,6 +45,13 @@ def test_cyclical_routing_precedes_profitable_growth():
     assert result == CaseType.CYCLICAL
 
 
-def test_quality_compounder_routing_does_not_require_a_loss():
+def test_ambiguous_quality_compounder_boundary_stays_unresolved():
     result = route_case(RouterInput(profitable=True, high_roic_long_duration=True))
-    assert result == CaseType.QUALITY_COMPOUNDER
+    assert result is None
+
+
+def test_unimplemented_router_case_is_blocked_from_execution():
+    with pytest.raises(NotImplementedError, match="not implemented"):
+        require_implemented_case(
+            RouterInput(profitable=True, structurally_cyclical=True)
+        )

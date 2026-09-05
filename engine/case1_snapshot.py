@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from pathlib import Path
 
 from engine.cases.profitable_growth import (
@@ -32,6 +33,22 @@ from engine.scoring import quant_grade, weighted_quant_score
 
 _CONFIG_PATH = Path(__file__).parents[1] / "config" / "profitable_growth.json"
 WEIGHTS = json.loads(_CONFIG_PATH.read_text(encoding="utf-8"))["weights"]
+CASE1_CORE_METRICS = frozenset(WEIGHTS)
+
+
+def validate_case1_core_metrics(metrics: Iterable[object]) -> None:
+    """Validate the frozen Case 1 Core 8 identity at its policy boundary."""
+    items = tuple(metrics)
+    names = [getattr(metric, "name") for metric in items]
+    if len(names) != len(set(names)) or set(names) != CASE1_CORE_METRICS:
+        raise ValueError("Case 1 Quant requires exactly the frozen Core 8")
+    for metric in items:
+        if hasattr(metric, "is_core") and not getattr(metric, "is_core"):
+            raise ValueError("Case 1 Core metrics cannot be relabeled as supporting")
+        if abs(getattr(metric, "weight") - WEIGHTS[metric.name]) > 1e-12:
+            raise ValueError("Case 1 Core metric weight does not match frozen policy")
+        if getattr(metric, "value", None) is None and getattr(metric, "grade", None) is not None:
+            raise ValueError("unresolved Case 1 Core metric cannot carry a grade")
 
 
 def _growth_trend(latest_yoy: float, cagr_3y: float) -> Trend:
@@ -113,7 +130,12 @@ def build_case1_snapshot(
                 sum(period.capex for period in history.periods[-3:]),
                 sum(period.cfo for period in history.periods[-3:]),
             ),
-            note=f"3Y CAPEX/CFO={capex_intensity:.4f}; tag does not alter grade",
+            note=(
+                f"3Y CAPEX/CFO={capex_intensity:.4f}; tag does not alter grade"
+                if capex_intensity is not None
+                else "3Y CAPEX/CFO unresolved because cumulative CFO is not positive; "
+                "tag does not alter grade"
+            ),
         ),
         MetricResult(
             name="capital_efficiency",
@@ -151,6 +173,8 @@ def build_case1_snapshot(
             weight=WEIGHTS["per_share_growth"],
         ),
     ]
+
+    validate_case1_core_metrics(metrics)
 
     score = None
     grade = None

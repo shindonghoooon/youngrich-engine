@@ -4,6 +4,11 @@ from dataclasses import dataclass
 from engine.models import CaseType
 
 
+IMPLEMENTED_CASES = frozenset(
+    {CaseType.PROFITABLE_GROWTH, CaseType.LOSS_MAKING_GROWTH}
+)
+
+
 @dataclass
 class RouterInput:
     profitable: bool
@@ -14,7 +19,7 @@ class RouterInput:
     asset_or_event_driven: bool = False
 
 
-def route_case(x: RouterInput) -> CaseType:
+def route_case(x: RouterInput) -> CaseType | None:
     '''
     Minimal placeholder router.
 
@@ -30,10 +35,20 @@ def route_case(x: RouterInput) -> CaseType:
     if x.mature_slow_growth:
         return CaseType.LARGECAP_VALUE
     # TODO: Calibrate the boundary with Profitable Growth using a broader
-    # sample. Until then, a confirmed long-duration, high-ROIC thesis routes
-    # here regardless of current profitability.
+    # sample. Until then, do not auto-promote the ambiguous input to the
+    # unimplemented Quality Compounder case.
     if x.high_roic_long_duration:
-        return CaseType.QUALITY_COMPOUNDER
+        return None
     if x.profitable:
         return CaseType.PROFITABLE_GROWTH
-    return CaseType.QUALITY_COMPOUNDER
+    return None
+
+
+def require_implemented_case(x: RouterInput) -> CaseType:
+    """Resolve an executable Case or block unresolved/unimplemented routes."""
+    case = route_case(x)
+    if case is None:
+        raise ValueError("Case Router result is unresolved")
+    if case not in IMPLEMENTED_CASES:
+        raise NotImplementedError(f"{case.value} is not implemented")
+    return case

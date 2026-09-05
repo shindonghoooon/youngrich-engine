@@ -214,12 +214,15 @@ def analysis_input(
         current=Case2CurrentInput(**current_values),
         valuation_assumptions=case2_assumptions(ticker),
         current_market_cap=200,
+        current_price=2,
         current_revenue=periods[-1].revenue,
+        current_share_count=100,
         required_return=0.15,
         valuation_evidence=ValuationEvidenceState(
             credible_evidence_count=evidence_count,
             company_economics_stable=True,
             company_economics_rapidly_changing=False,
+            available_at=CURRENT_AVAILABLE,
         ),
         asymmetry_type=AsymmetryType.FAVORABLE,
     )
@@ -287,6 +290,7 @@ def test_case1_full_synthetic_analysis_fixture():
             credible_evidence_count=2,
             company_economics_stable=True,
             company_economics_rapidly_changing=False,
+            available_at=CURRENT_AVAILABLE,
         ),
         asymmetry_type=AsymmetryType.FAVORABLE,
     )

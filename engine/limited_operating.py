@@ -116,6 +116,9 @@ class EvaluationChangeType(str, Enum):
     PRICE_ONLY = "PRICE_ONLY"
     POLICY_CHANGE = "POLICY_CHANGE"
     ASSUMPTION_OR_EVIDENCE_CHANGE = "ASSUMPTION_OR_EVIDENCE_CHANGE"
+    FUNDAMENTAL_CHANGE = "FUNDAMENTAL_CHANGE"
+    INPUT_SCOPE_CHANGE = "INPUT_SCOPE_CHANGE"
+    UNRESOLVED = "UNRESOLVED"
     NONE = "NONE"
 
 
@@ -139,6 +142,9 @@ class DemoProfile(FrozenDomainModel):
     meaningful_optionality: bool = False
     highly_stage_sensitive: bool = False
     financial_period_label: str
+    financial_unit: str
+    accounting_scope: str
+    share_basis_version: str | None = None
     fundamental_input_reference: str
     fundamental_input_fingerprint: str
 
@@ -182,7 +188,7 @@ class PriceRefreshResult(FrozenDomainModel):
 
 
 class OperatingEvaluation(FrozenDomainModel):
-    schema_version: str = "limited-operating-evaluation-v0.1"
+    schema_version: str = "limited-operating-evaluation-v0.2"
     evaluation_id: str
     reference_analysis_snapshot_id: str
     instrument_id: str
@@ -196,8 +202,11 @@ class OperatingEvaluation(FrozenDomainModel):
     currency: str = Field(min_length=3, max_length=3)
     assumption_set_id: str | None = None
     assumption_version: int | None = Field(default=None, ge=1)
+    financial_unit: str | None = None
+    accounting_scope: str | None = None
+    share_basis_version: str | None = None
     fundamental_input_reference: str
-    fundamental_input_fingerprint: str
+    fundamental_input_fingerprint: str | None
     investment_grade_policy_version: InvestmentGradePolicyVersion
     assessment_as_of: datetime
     usage_mode: UsageMode = UsageMode.DEMO_VALIDATION
@@ -243,6 +252,21 @@ class OperatingEvaluation(FrozenDomainModel):
                 or identity.version != self.assumption_version
             ):
                 raise ValueError("valuation assumption identity mismatch")
+            if (
+                self.valuation_result.fundamental_input_fingerprint
+                != self.fundamental_input_fingerprint
+            ):
+                raise ValueError("valuation fundamental fingerprint mismatch")
+        if self.schema_version == "limited-operating-evaluation-v0.2":
+            if not self.fundamental_input_fingerprint:
+                raise ValueError("v0.2 evaluation requires a fundamental fingerprint")
+            if not self.financial_unit or not self.accounting_scope:
+                raise ValueError("v0.2 evaluation requires financial input scope")
+            if (
+                self.case == AnalysisCase.CASE_2_EMERGING_ASYMMETRIC_GROWTH
+                and not self.share_basis_version
+            ):
+                raise ValueError("Case 2 v0.2 evaluation requires share basis version")
         if self.investment_grade_result.final_grade == InvestmentGrade.U:
             if not self.unresolved_reasons:
                 raise ValueError("U evaluation requires an unresolved reason")
@@ -272,7 +296,8 @@ class OperatingEvaluationDiff(FrozenDomainModel):
     current_grade: InvestmentGrade
     assumption_identity_unchanged: bool
     policy_version_unchanged: bool
-    fundamental_input_unchanged: bool
+    fundamental_input_unchanged: bool | None
+    input_scope_unchanged: bool | None
     unresolved_reasons: tuple[str, ...] = ()
 
 
@@ -430,9 +455,9 @@ def _case2_profile(repo_root: Path, ticker: str) -> DemoProfile:
         company_economics_rapidly_changing=valuation_data[
             "economics_rapidly_changing"
         ],
+        available_at=as_of,
     )
     price_id = f"{ticker}-validation-raw-2026-09-01"
-    fingerprint = _canonical_fingerprint(fixture_path)
     analysis_input = Case2AnalysisInput(
         snapshot_id=f"{ticker}-golden-analysis-2026-09-01",
         investment_grade_snapshot_id=f"{ticker}-golden-ig-2026-09-01",
@@ -472,7 +497,9 @@ def _case2_profile(repo_root: Path, ticker: str) -> DemoProfile:
         current_market_cap=(
             data["market"]["close"] * data["market"]["shares_for_market_cap"] / 1000
         ),
+        current_price=data["market"]["close"],
         current_revenue=latest.revenue,
+        current_share_count=data["market"]["shares_for_market_cap"],
         required_return=valuation_data["required_return"],
         valuation_evidence=evidence,
         asymmetry_type=AsymmetryType(valuation_data["asymmetry_type"]),
@@ -480,13 +507,8 @@ def _case2_profile(repo_root: Path, ticker: str) -> DemoProfile:
     )
     analysis = build_case2_analysis(analysis_input)
     assert analysis.valuation is not None
-    analysis = analysis.model_copy(
-        update={
-            "valuation": analysis.valuation.model_copy(
-                update={"fundamental_input_fingerprint": fingerprint}
-            )
-        }
-    )
+    fingerprint = analysis.valuation.fundamental_input_fingerprint
+    assert fingerprint is not None
     baseline_price = PriceSnapshot(
         price_snapshot_id=price_id,
         ticker=ticker,
@@ -524,6 +546,9 @@ def _case2_profile(repo_root: Path, ticker: str) -> DemoProfile:
             f"FY{periods[0].fiscal_year}-FY{periods[-1].fiscal_year}; "
             f"current through {current['period_end']}"
         ),
+        financial_unit=data["unit"],
+        accounting_scope="reported_consolidated_gaap",
+        share_basis_version="reported_actual_common_shares",
         fundamental_input_reference=fixture_path.relative_to(repo_root).as_posix(),
         fundamental_input_fingerprint=fingerprint,
     )
@@ -557,6 +582,8 @@ def _strl_profile(repo_root: Path) -> DemoProfile:
         financial_period_label=(
             f"FY{history.periods[0].fiscal_year}-FY{history.periods[-1].fiscal_year}"
         ),
+        financial_unit=f"{history.currency}_normalized_units",
+        accounting_scope="reported_consolidated_gaap",
         fundamental_input_reference=fixture_path.relative_to(repo_root).as_posix(),
         fundamental_input_fingerprint=_canonical_fingerprint(fixture_path),
     )
@@ -927,15 +954,18 @@ class LimitedOperatingService:
                     ),
                     assumptions=assumptions,
                     current_market_cap=estimated_market_cap,
+                    current_price=price.price,
                     current_revenue=profile.current_revenue,
+                    current_share_count=profile.shares_for_market_cap,
                     required_return=profile.required_return,
                     evidence=profile.valuation_evidence,
                     asymmetry_type=profile.asymmetry_type,
-                ).model_copy(
-                    update={
-                        "fundamental_input_fingerprint": profile.fundamental_input_fingerprint
-                    }
                 )
+                if (
+                    valuation.fundamental_input_fingerprint
+                    != profile.fundamental_input_fingerprint
+                ):
+                    raise ValueError("valuation fundamental fingerprint mismatch")
                 narrative_gate = analysis.narrative_gate
                 if narrative_gate is None:
                     raise ValueError(
@@ -992,6 +1022,9 @@ class LimitedOperatingService:
             currency=price.currency,
             assumption_set_id=assumption_set_id,
             assumption_version=assumption_version,
+            financial_unit=profile.financial_unit,
+            accounting_scope=profile.accounting_scope,
+            share_basis_version=profile.share_basis_version,
             fundamental_input_reference=profile.fundamental_input_reference,
             fundamental_input_fingerprint=profile.fundamental_input_fingerprint,
             investment_grade_policy_version=policy_version,
@@ -1040,16 +1073,43 @@ class LimitedOperatingService:
             previous.investment_grade_policy_version
             == current.investment_grade_policy_version
         )
+        fingerprints_present = bool(
+            previous.fundamental_input_fingerprint
+            and current.fundamental_input_fingerprint
+        )
         same_fundamental = (
             previous.reference_analysis_snapshot_id
             == current.reference_analysis_snapshot_id
+            and fingerprints_present
             and previous.fundamental_input_fingerprint
             == current.fundamental_input_fingerprint
         )
+        previous_scope = (
+            previous.currency,
+            previous.price_basis,
+            previous.financial_unit,
+            previous.accounting_scope,
+            previous.share_basis_version,
+        )
+        current_scope = (
+            current.currency,
+            current.price_basis,
+            current.financial_unit,
+            current.accounting_scope,
+            current.share_basis_version,
+        )
+        scopes_present = all(value is not None for value in previous_scope + current_scope)
+        same_scope = previous_scope == current_scope if scopes_present else None
         if not same_policy:
             change_type = EvaluationChangeType.POLICY_CHANGE
-        elif not same_assumption or not same_fundamental:
+        elif not fingerprints_present or same_scope is None:
+            change_type = EvaluationChangeType.UNRESOLVED
+        elif not same_scope:
+            change_type = EvaluationChangeType.INPUT_SCOPE_CHANGE
+        elif not same_assumption:
             change_type = EvaluationChangeType.ASSUMPTION_OR_EVIDENCE_CHANGE
+        elif not same_fundamental:
+            change_type = EvaluationChangeType.FUNDAMENTAL_CHANGE
         elif previous.price_snapshot_id != current.price_snapshot_id:
             change_type = EvaluationChangeType.PRICE_ONLY
         else:
@@ -1075,6 +1135,7 @@ class LimitedOperatingService:
             assumption_identity_unchanged=same_assumption,
             policy_version_unchanged=same_policy,
             fundamental_input_unchanged=same_fundamental,
+            input_scope_unchanged=same_scope,
             unresolved_reasons=current.unresolved_reasons,
         )
 
