@@ -11,7 +11,7 @@ from engine.calibration_engine import HistoricalAnalysisLike
 from engine.case1_snapshot import build_case1_snapshot
 from engine.case2_analysis import Case2AnalysisInput, build_case2_analysis
 from engine.case2_policy import EligibilityState
-from engine.case2_quant import build_case2_quant
+from engine.case2_quant import Case2QuantInput, build_case2_quant
 from engine.financials import FinancialHistory
 from engine.models import CapitalModel
 from engine.tracking_models import (
@@ -173,3 +173,46 @@ class Case2BacktestAdapter:
         if as_of != inputs.as_of:
             raise ValueError("adapter as_of must match the versioned Case 2 input")
         return build_case2_analysis(inputs)
+
+
+class Case2QuantOnlyAnalysis(FrozenDomainModel):
+    """Minimal historical-analysis shape for Quant-only calibration."""
+
+    snapshot_id: str
+    ticker: str
+    case: AnalysisCase = AnalysisCase.CASE_2_EMERGING_ASYMMETRIC_GROWTH
+    case_definition_version: str = "case2-v1-frozen"
+    as_of: datetime
+    quant: QuantSnapshot
+    current_trend: None = None
+    valuation: None = None
+    investment_grade: None = None
+
+
+class Case2QuantBacktestAdapter:
+    """Run frozen Case 2 Quant without Narrative, Current, Valuation, price, or IG."""
+
+    case = AnalysisCase.CASE_2_EMERGING_ASYMMETRIC_GROWTH.value
+    logic_version = "case2-v1-frozen"
+
+    def is_eligible(self, inputs: Case2QuantInput, as_of: datetime) -> bool:
+        return (
+            inputs.available_at <= as_of
+            and inputs.as_of == as_of
+            and build_case2_quant(inputs).eligibility == EligibilityState.ELIGIBLE
+        )
+
+    def evaluate(
+        self,
+        inputs: Case2QuantInput,
+        as_of: datetime,
+    ) -> Case2QuantOnlyAnalysis:
+        if as_of != inputs.as_of:
+            raise ValueError("adapter as_of must match the versioned Case 2 Quant input")
+        result = build_case2_quant(inputs)
+        return Case2QuantOnlyAnalysis(
+            snapshot_id=f"{inputs.snapshot_id}-analysis",
+            ticker=inputs.ticker,
+            as_of=as_of,
+            quant=result.snapshot,
+        )

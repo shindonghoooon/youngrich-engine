@@ -12,6 +12,8 @@ from engine.persistence.models import (
     Base,
     ExitMultipleEvidenceRow,
     ImmutableRecordError,
+    InvestmentGradeAdjustmentRow,
+    InvestmentGradeSnapshotRow,
     MetricResultRow,
     PerformanceSnapshotRow,
     ThesisStatusSnapshotRow,
@@ -378,6 +380,54 @@ def test_full_analysis_round_trip_children_unresolved_and_order(session):
     assert [item.sequence for item in restored.investment_grade.adjustments] == [1, 2]
     metric_row = session.scalar(select(MetricResultRow).where(MetricResultRow.metric_key == "capital_efficiency"))
     assert metric_row.raw_value is None and metric_row.normalized_value is None
+
+
+def test_v1_1_model_version_and_safety_reason_round_trip(session):
+    seed_identity(session)
+    register_assumption(session)
+    base = full_analysis("safety-v1-1")
+    safety_reason = "MANDATORY_QUANT_UNRESOLVED"
+    grade = base.investment_grade.model_copy(
+        update={
+            "model_version": "investment-grade-v1.1-safety",
+            "initial_valuation_grade": InvestmentGrade.U,
+            "final_grade": InvestmentGrade.U,
+            "rationale": safety_reason,
+            "adjustments": (
+                InvestmentGradeAdjustment(
+                    sequence=1,
+                    adjustment_type=AdjustmentType.GATE,
+                    trigger=InvestmentGradeTrigger.QUANT,
+                    active=True,
+                    maximum_grade=InvestmentGrade.U,
+                    reason=safety_reason,
+                ),
+            ),
+        }
+    )
+    snapshot = base.model_copy(update={"investment_grade": grade})
+
+    repo = AnalysisRepository(session)
+    repo.add_analysis_snapshot(
+        snapshot,
+        instrument_id="instrument-test",
+        company_id="company-test",
+        created_at=AS_OF,
+    )
+    restored = repo.get_analysis_snapshot(snapshot.snapshot_id)
+    grade_row = session.get(InvestmentGradeSnapshotRow, grade.snapshot_id)
+    reason_row = session.scalar(
+        select(InvestmentGradeAdjustmentRow).where(
+            InvestmentGradeAdjustmentRow.investment_grade_snapshot_id
+            == grade.snapshot_id
+        )
+    )
+
+    assert restored.investment_grade.model_version == "investment-grade-v1.1-safety"
+    assert restored.investment_grade.adjustments[0].reason == safety_reason
+    assert restored.investment_grade.rationale == safety_reason
+    assert grade_row.engine_version == "investment-grade-v1.1-safety"
+    assert reason_row.reason == safety_reason
 
 
 def test_persisted_analysis_is_immutable_and_correction_appends(session):

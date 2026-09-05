@@ -167,6 +167,11 @@ class InvestmentGrade(str, Enum):
     U = "U"
 
 
+class InvestmentGradePolicyVersion(str, Enum):
+    V1 = "v1"
+    V1_1 = "v1.1"
+
+
 class TerminalStage(str, Enum):
     GROWTH = "growth"
     TRANSITION = "transition"

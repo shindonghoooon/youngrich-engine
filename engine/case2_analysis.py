@@ -7,12 +7,14 @@ from datetime import date, datetime
 from engine.case2_current import Case2CurrentInput, build_case2_current_trend
 from engine.case2_quant import Case2QuantInput, build_case2_quant
 from engine.investment_grade_engine import build_investment_grade
+from engine.investment_grade_engine_v1_1 import build_investment_grade_v1_1
 from engine.narrative_engine import derive_gate_from_snapshot
 from engine.tracking_models import (
     AnalysisCase,
     AnalysisSnapshot,
     AsymmetryType,
     FrozenDomainModel,
+    InvestmentGradePolicyVersion,
     NarrativeSnapshot,
     ValuationAssumptionSet,
 )
@@ -42,6 +44,11 @@ class Case2AnalysisInput(FrozenDomainModel):
     required_return: float
     valuation_evidence: ValuationEvidenceState
     asymmetry_type: AsymmetryType
+    investment_grade_policy_version: InvestmentGradePolicyVersion = (
+        InvestmentGradePolicyVersion.V1
+    )
+    meaningful_optionality: bool = False
+    highly_stage_sensitive: bool = False
     reference_price_snapshot_id: str | None = None
 
 
@@ -76,7 +83,18 @@ def build_case2_analysis(inputs: Case2AnalysisInput) -> AnalysisSnapshot:
         evidence=inputs.valuation_evidence,
         asymmetry_type=inputs.asymmetry_type,
     )
-    investment_grade = build_investment_grade(
+    grade_builder = (
+        build_investment_grade_v1_1
+        if inputs.investment_grade_policy_version == InvestmentGradePolicyVersion.V1_1
+        else build_investment_grade
+    )
+    grade_kwargs = {}
+    if inputs.investment_grade_policy_version == InvestmentGradePolicyVersion.V1_1:
+        grade_kwargs = {
+            "meaningful_optionality": inputs.meaningful_optionality,
+            "highly_stage_sensitive": inputs.highly_stage_sensitive,
+        }
+    investment_grade = grade_builder(
         snapshot_id=inputs.investment_grade_snapshot_id,
         ticker=inputs.quant.ticker,
         period_end=inputs.period_end,
@@ -88,6 +106,7 @@ def build_case2_analysis(inputs: Case2AnalysisInput) -> AnalysisSnapshot:
         narrative_gate=narrative_result.gate,
         valuation=valuation,
         thesis_breaker_triggered=inputs.thesis_breaker_triggered,
+        **grade_kwargs,
     )
     return AnalysisSnapshot(
         snapshot_id=inputs.snapshot_id,

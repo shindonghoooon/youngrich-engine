@@ -15,7 +15,11 @@ from pathlib import Path
 import pytest
 
 from engine.case2_analysis import Case2AnalysisInput, build_case2_analysis
-from engine.case_backtest_adapters import Case2BacktestAdapter, evaluate_with_adapter
+from engine.case_backtest_adapters import (
+    Case2BacktestAdapter,
+    Case2QuantBacktestAdapter,
+    evaluate_with_adapter,
+)
 from engine.case2_current import Case2CurrentInput
 from engine.case2_quant import Case2AnnualPeriod, Case2QuantInput
 from engine.models import Grade
@@ -30,6 +34,7 @@ from engine.tracking_models import (
     ExitMultipleEvidenceSource,
     GrowthScope,
     InvestmentGrade,
+    InvestmentGradePolicyVersion,
     NarrativeAssessment,
     NarrativeGate,
     NarrativeSnapshot,
@@ -403,3 +408,35 @@ def test_case2_backtest_adapter_reuses_the_frozen_analysis_path():
         Case2BacktestAdapter(), inputs, as_of=inputs.as_of
     )
     assert adapted == direct
+
+
+def test_case2_quant_only_adapter_matches_full_analysis_without_other_layers():
+    inputs = build_input(load_fixture("TEM"))
+    full = build_case2_analysis(inputs)
+    quant_only = evaluate_with_adapter(
+        Case2QuantBacktestAdapter(), inputs.quant, as_of=inputs.as_of
+    )
+
+    assert quant_only.quant == full.quant
+    assert quant_only.current_trend is None
+    assert quant_only.valuation is None
+    assert quant_only.investment_grade is None
+
+
+def test_case2_new_analysis_can_select_v1_1_without_rewriting_v1_golden():
+    inputs = build_input(load_fixture("TEM"))
+    old = build_case2_analysis(inputs)
+    safe = build_case2_analysis(
+        inputs.model_copy(
+            update={
+                "snapshot_id": "TEM-v1.1-analysis",
+                "investment_grade_snapshot_id": "TEM-v1.1-grade",
+                "investment_grade_policy_version": InvestmentGradePolicyVersion.V1_1,
+            }
+        )
+    )
+
+    assert old.investment_grade.model_version == "investment-grade-v1-frozen"
+    assert safe.investment_grade.model_version == "investment-grade-v1.1-safety"
+    assert old.quant == safe.quant
+    assert old.investment_grade.final_grade == safe.investment_grade.final_grade

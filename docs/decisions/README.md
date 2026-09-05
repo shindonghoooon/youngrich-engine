@@ -19,5 +19,6 @@ replacement; research notes cannot supersede an accepted ADR.
 | [0009](0009-company-vs-instrument-identity.md) | Company vs Instrument identity | ACCEPTED |
 | [0010](0010-performance-is-downstream-only.md) | Performance is downstream-only | ACCEPTED |
 | [0011](0011-generic-calibration-framework.md) | Generic Calibration Framework | ACCEPTED |
+| [0012](0012-investment-grade-decision-safety-v1-1.md) | Investment Grade Decision Safety v1.1 | ACCEPTED |
 
 Use the next number only for a material architecture or investment-model decision.

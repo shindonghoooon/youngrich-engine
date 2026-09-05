@@ -92,6 +92,8 @@ These documents marked `FROZEN` are authoritative for production behavior:
 - [Narrative v1](docs/specs/narrative-v1.md)
 - [Common Valuation v1](docs/specs/valuation-v1.md)
 - [Investment Grade v1](docs/specs/investment-grade-v1.md)
+- [Investment Grade v1.1 Decision Safety](docs/specs/investment-grade-v1.1.md) —
+  default for explicitly selected new decision snapshots; v1 remains replayable
 - [Tracking Schema v0.1](docs/specs/tracking-schema-v1.md)
 - [Tracking Engine v1](docs/specs/tracking-engine-v1.md)
 - [Persistence Phase 1](docs/specs/persistence-v1.md)
@@ -111,7 +113,7 @@ and historical discussion. Changes require an explicit design decision and versi
 | Layer | Status |
 |---|---|
 | Case 1 and Case 2 calculation engines | COMPLETE |
-| Common Valuation and Investment Grade | COMPLETE |
+| Common Valuation and Investment Grade | COMPLETE / v1.1 SAFETY VERSIONED |
 | Tracking domain, price, diff, thesis, and entry-zone engines | COMPLETE |
 | Append-only persistence and Alembic schema | COMPLETE |
 | Performance horizons, MDD coverage, benchmark alpha, and cohorts | COMPLETE |

@@ -66,12 +66,14 @@ remains blocked on its eight data/universe decisions.
 
 ## M4 Investment Grade
 
-- Status: COMPLETE / FROZEN v1
+- Status: COMPLETE / FROZEN v1 + v1.1 DECISION SAFETY
 - Goal: Convert valuation result into a decision grade through explicit gates and caps.
-- Deliverables: A/B/C/D/X/U, ordered adjustment trail, thesis-breaker representation.
+- Deliverables: A/B/C/D/X/U, ordered adjustment trail, thesis-breaker representation,
+  mandatory-evidence U gates, confidence-monotonic valuation entry, and versioned replay.
 - Entry criteria: Quant, Current, Narrative, and Valuation contracts available.
 - Exit criteria: deterministic engine and regression tests pass.
-- Decisions required: none for v1.
+- Decisions required: v1 remains historical replay; explicitly selected new decisions
+  use the accepted v1.1 safety contract.
 - Non-goals: weighted-average Investment Grade.
 
 ## M5 Tracking Domain Models
