@@ -80,17 +80,32 @@ class Case2QuantResult(FrozenDomainModel):
     snapshot: QuantSnapshot
 
 
-def validate_case2_quant_snapshot(snapshot: QuantSnapshot) -> None:
-    """Validate the frozen Core 6 and its approved shareholder-data exception."""
+def validate_case2_quant_snapshot(
+    snapshot: QuantSnapshot,
+    *,
+    allow_missing: bool = False,
+) -> tuple[str, ...]:
+    """Validate Core 6 and optionally report genuine omissions for an IG U gate."""
+    by_name = {metric.name: metric for metric in snapshot.metrics}
     core = tuple(metric for metric in snapshot.metrics if metric.is_core)
     names = [metric.name for metric in core]
-    if len(names) != len(set(names)) or set(names) != set(CASE2_CORE_WEIGHTS):
+    if len(names) != len(set(names)) or set(names) - set(CASE2_CORE_WEIGHTS):
         raise ValueError("Case 2 Quant requires exactly the frozen Core 6")
+    for name in set(CASE2_CORE_WEIGHTS) & set(by_name):
+        if not by_name[name].is_core:
+            raise ValueError(f"required Quant metric cannot be supporting: {name}")
     for metric in core:
         if abs(metric.weight - CASE2_CORE_WEIGHTS[metric.name]) > 1e-12:
             raise ValueError("Case 2 Core metric weight does not match frozen policy")
         if metric.state == ResolutionState.RESOLVED and metric.grade is None:
             raise ValueError("resolved Case 2 Core metric requires a grade")
+        if metric.state == ResolutionState.UNRESOLVED and (
+            metric.value is not None or metric.grade is not None
+        ):
+            raise ValueError("unresolved Case 2 Core metric cannot carry value or grade")
+    missing = tuple(sorted(set(CASE2_CORE_WEIGHTS) - set(names)))
+    if missing and not allow_missing:
+        raise ValueError("Case 2 Quant requires exactly the frozen Core 6")
     unresolved = {
         metric.name for metric in core if metric.state == ResolutionState.UNRESOLVED
     }
@@ -102,6 +117,7 @@ def validate_case2_quant_snapshot(snapshot: QuantSnapshot) -> None:
             raise ValueError("shareholder-comparability exception must be provisional")
         if not unresolved.issubset(CASE2_SHAREHOLDER_OPTIONAL_METRICS):
             raise ValueError("only shareholder metrics may be unresolved provisionally")
+    return missing
 
 
 def _fcf(period: Case2AnnualPeriod) -> float | None:

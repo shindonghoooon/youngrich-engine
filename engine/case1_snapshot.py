@@ -36,11 +36,15 @@ WEIGHTS = json.loads(_CONFIG_PATH.read_text(encoding="utf-8"))["weights"]
 CASE1_CORE_METRICS = frozenset(WEIGHTS)
 
 
-def validate_case1_core_metrics(metrics: Iterable[object]) -> None:
-    """Validate the frozen Case 1 Core 8 identity at its policy boundary."""
+def validate_case1_core_metrics(
+    metrics: Iterable[object],
+    *,
+    allow_missing: bool = False,
+) -> tuple[str, ...]:
+    """Validate the frozen Core 8 and optionally report genuine omissions."""
     items = tuple(metrics)
     names = [getattr(metric, "name") for metric in items]
-    if len(names) != len(set(names)) or set(names) != CASE1_CORE_METRICS:
+    if len(names) != len(set(names)) or set(names) - CASE1_CORE_METRICS:
         raise ValueError("Case 1 Quant requires exactly the frozen Core 8")
     for metric in items:
         if hasattr(metric, "is_core") and not getattr(metric, "is_core"):
@@ -49,6 +53,12 @@ def validate_case1_core_metrics(metrics: Iterable[object]) -> None:
             raise ValueError("Case 1 Core metric weight does not match frozen policy")
         if getattr(metric, "value", None) is None and getattr(metric, "grade", None) is not None:
             raise ValueError("unresolved Case 1 Core metric cannot carry a grade")
+        if getattr(metric, "value", None) is not None and getattr(metric, "grade", None) is None:
+            raise ValueError("resolved Case 1 Core metric requires a grade")
+    missing = tuple(sorted(CASE1_CORE_METRICS - set(names)))
+    if missing and not allow_missing:
+        raise ValueError("Case 1 Quant requires exactly the frozen Core 8")
+    return missing
 
 
 def _growth_trend(latest_yoy: float, cagr_3y: float) -> Trend:

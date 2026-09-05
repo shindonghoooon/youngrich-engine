@@ -20,6 +20,7 @@ from engine.tracking_models import (
     ValuationAssumptionSet,
     ValuationSnapshot,
     ValuationOutput,
+    validate_valuation_evidence_timing,
 )
 from engine.valuation_policy import (
     case1_required_eps_cagr,
@@ -37,11 +38,17 @@ class ValuationEvidenceState(FrozenDomainModel):
     company_economics_stable: bool
     company_economics_rapidly_changing: bool
     available_at: datetime
+    retrieved_at: datetime | None = None
 
     @model_validator(mode="after")
     def validate_available_at(self) -> Self:
         if self.available_at.tzinfo is None or self.available_at.utcoffset() is None:
             raise ValueError("valuation evidence available_at must be timezone-aware")
+        if self.retrieved_at is not None and (
+            self.retrieved_at.tzinfo is None
+            or self.retrieved_at.utcoffset() is None
+        ):
+            raise ValueError("valuation evidence retrieved_at must be timezone-aware")
         return self
 
 
@@ -79,17 +86,6 @@ def valuation_input_fingerprint(
     return sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def _validate_valuation_evidence_timing(
-    identity: ValuationIdentity,
-    assumptions: ValuationAssumptionSet,
-    evidence: ValuationEvidenceState,
-) -> None:
-    if evidence.available_at > identity.as_of:
-        raise ValueError("valuation evidence is not available at valuation as_of")
-    if any(item.as_of > identity.as_of for item in assumptions.exit_multiples):
-        raise ValueError("exit-multiple evidence is not available at valuation as_of")
-
-
 def _range(values: list[float]) -> AssumptionRange:
     return AssumptionRange(low=min(values), high=max(values))
 
@@ -110,7 +106,13 @@ def build_case1_valuation(
         raise ValueError("Case 1 v1 calculation engine supports PE only")
     if required_return not in assumptions.required_return_sensitivities:
         raise ValueError("required_return must be a configured sensitivity")
-    _validate_valuation_evidence_timing(identity, assumptions, evidence)
+    validate_valuation_evidence_timing(
+        evaluation_as_of=identity.as_of,
+        assumption_set=assumptions,
+        evidence_available_at=evidence.available_at,
+        evidence_retrieved_at=evidence.retrieved_at,
+        require_evidence_available_at=True,
+    )
     cases = tuple(
         RequiredGrowthCase(
             band=multiple.band,
@@ -155,6 +157,8 @@ def build_case1_valuation(
             identity=identity,
             current_eps=current_eps,
         ),
+        evidence_available_at=evidence.available_at,
+        evidence_retrieved_at=evidence.retrieved_at,
         output=output,
     )
 
@@ -179,7 +183,13 @@ def build_case2_valuation(
         raise ValueError("current_share_count must be positive")
     if current_price <= 0:
         raise ValueError("current_price must be positive")
-    _validate_valuation_evidence_timing(identity, assumptions, evidence)
+    validate_valuation_evidence_timing(
+        evaluation_as_of=identity.as_of,
+        assumption_set=assumptions,
+        evidence_available_at=evidence.available_at,
+        evidence_retrieved_at=evidence.retrieved_at,
+        require_evidence_available_at=True,
+    )
     future_equity = case2_required_future_equity_value(
         current_market_cap=current_market_cap,
         required_return=required_return,
@@ -248,5 +258,7 @@ def build_case2_valuation(
             current_revenue=current_revenue,
             current_share_count=current_share_count,
         ),
+        evidence_available_at=evidence.available_at,
+        evidence_retrieved_at=evidence.retrieved_at,
         output=output,
     )

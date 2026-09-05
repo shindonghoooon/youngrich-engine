@@ -20,7 +20,10 @@ from engine.case2_quant import (
 from engine.financial_metrics import cumulative_capex_to_cfo_3y
 from engine.financials import FinancialHistory, load_financial_history
 from engine.investment_grade_engine import build_investment_grade
-from engine.investment_grade_engine_v1_1 import build_investment_grade_v1_1
+from engine.investment_grade_engine_v1_1 import (
+    VALUATION_EVIDENCE_UNRESOLVED,
+    build_investment_grade_v1_1,
+)
 from engine.limited_operating import load_demo_profile
 from engine.models import CapitalModel, Grade
 from engine.persistence.models import Base
@@ -43,6 +46,7 @@ from engine.tracking_models import (
     ExitMultipleAssumption,
     ExitMultipleBand,
     ExitMultipleEvidenceSource,
+    InvestmentGrade,
     InvestmentGradePolicyVersion,
     MetricResult,
     ResolutionState,
@@ -52,6 +56,7 @@ from engine.tracking_models import (
     ValuationChangeType,
     ValuationConfidence,
     ValuationMetric,
+    ValuationSnapshot,
 )
 from engine.valuation_engine import (
     ValuationEvidenceState,
@@ -143,6 +148,198 @@ def test_case2_actual_builder_rejects_each_missing_core_metric(metric_name):
         validate_case2_quant_snapshot(modified)
 
 
+def _direct_case2_ig(quant=None, *, ticker: str = "TEM", valuation=None):
+    profile = load_demo_profile(ROOT, ticker)
+    analysis = profile.analysis
+    assert analysis.valuation is not None
+    assert analysis.current_trend is not None
+    return build_investment_grade_v1_1(
+        snapshot_id=f"{ticker}-direct-audit-ig",
+        ticker=ticker,
+        period_end=analysis.period_end,
+        available_at=analysis.available_at,
+        as_of=analysis.as_of,
+        case=AnalysisCase.CASE_2_EMERGING_ASYMMETRIC_GROWTH,
+        quant=quant or analysis.quant,
+        current_trend=analysis.current_trend,
+        narrative_gate=analysis.narrative_gate,
+        valuation=valuation or analysis.valuation,
+        thesis_breaker_triggered=False,
+    )
+
+
+def _case1_actual_inputs():
+    profile = load_demo_profile(ROOT, "STRL")
+    quant = profile.analysis.quant
+    evidence = ValuationEvidenceState(
+        credible_evidence_count=2,
+        company_economics_stable=True,
+        company_economics_rapidly_changing=False,
+        available_at=quant.as_of,
+        retrieved_at=quant.as_of,
+    )
+    valuation = build_case1_valuation(
+        identity=ValuationIdentity(
+            snapshot_id="STRL-direct-audit-valuation",
+            ticker="STRL",
+            period_end=quant.period_end,
+            available_at=quant.available_at,
+            as_of=quant.as_of,
+        ),
+        assumptions=_case1_assumptions(quant.as_of),
+        current_price=100,
+        current_eps=5,
+        required_return=0.15,
+        evidence=evidence,
+        asymmetry_type=AsymmetryType.BALANCED,
+    )
+    return quant, valuation
+
+
+def _direct_case1_ig(quant=None):
+    actual_quant, valuation = _case1_actual_inputs()
+    selected = quant or actual_quant
+    return build_investment_grade_v1_1(
+        snapshot_id="STRL-direct-audit-ig",
+        ticker="STRL",
+        period_end=selected.period_end,
+        available_at=selected.available_at,
+        as_of=selected.as_of,
+        case=AnalysisCase.CASE_1_PROFITABLE_GROWTH,
+        quant=selected,
+        current_trend=None,
+        narrative_gate=None,
+        valuation=valuation,
+        thesis_breaker_triggered=False,
+    )
+
+
+@pytest.mark.parametrize("metric_name", sorted(CASE1_CORE_METRICS))
+def test_case1_ig_v1_1_returns_u_when_actual_core_metric_is_missing(metric_name):
+    quant, _ = _case1_actual_inputs()
+    missing = quant.model_copy(
+        update={"metrics": tuple(m for m in quant.metrics if m.name != metric_name)}
+    )
+    result = _direct_case1_ig(missing)
+    assert result.final_grade == InvestmentGrade.U
+    assert metric_name in result.adjustments[0].reason
+
+
+@pytest.mark.parametrize(
+    "metric_name",
+    (
+        "revenue_growth",
+        "gross_profit_growth",
+        "cash_burn_trend",
+        "runway",
+        "dilution",
+        "revenue_per_share_growth",
+    ),
+)
+def test_case2_ig_v1_1_returns_u_when_actual_core_metric_is_missing(metric_name):
+    quant = load_demo_profile(ROOT, "TEM").analysis.quant
+    missing = quant.model_copy(
+        update={"metrics": tuple(m for m in quant.metrics if m.name != metric_name)}
+    )
+    result = _direct_case2_ig(missing)
+    assert result.final_grade == InvestmentGrade.U
+    assert metric_name in result.adjustments[0].reason
+
+
+def test_ig_v1_1_rejects_reweighted_missing_metric_input():
+    quant = load_demo_profile(ROOT, "TEM").analysis.quant
+    remaining = tuple(m for m in quant.metrics if m.name != "runway")
+    total = sum(m.weight for m in remaining if m.is_core)
+    reweighted = quant.model_copy(
+        update={
+            "metrics": tuple(
+                m.model_copy(update={"weight": m.weight / total})
+                if m.is_core
+                else m
+                for m in remaining
+            )
+        }
+    )
+    with pytest.raises(ValueError, match="weight does not match frozen policy"):
+        _direct_case2_ig(reweighted)
+
+
+def test_ig_v1_1_rejects_supporting_disguise_fake_core_and_case_mismatch():
+    quant = load_demo_profile(ROOT, "TEM").analysis.quant
+    disguised = quant.model_copy(
+        update={
+            "metrics": tuple(
+                m.model_copy(update={"is_core": False, "weight": 0})
+                if m.name == "runway"
+                else m
+                for m in quant.metrics
+            )
+        }
+    )
+    with pytest.raises(ValueError, match="cannot be supporting"):
+        _direct_case2_ig(disguised)
+
+    fake = quant.model_copy(
+        update={
+            "metrics": (
+                quant.metrics[0].model_copy(update={"name": "fake_metric", "weight": 1}),
+            )
+        }
+    )
+    with pytest.raises(ValueError, match="frozen Core 6"):
+        _direct_case2_ig(fake)
+
+    wrong_case = quant.model_copy(update={"case": AnalysisCase.CASE_1_PROFITABLE_GROWTH})
+    with pytest.raises(ValueError, match="case must match"):
+        _direct_case2_ig(wrong_case)
+
+    unsupported_version = quant.model_copy(update={"model_version": "case2-quant-v0"})
+    with pytest.raises(ValueError, match="unsupported Quant model_version"):
+        _direct_case2_ig(unsupported_version)
+
+    contradictory = quant.model_copy(
+        update={
+            "metrics": tuple(
+                metric.model_copy(update={"state": ResolutionState.UNRESOLVED})
+                if metric.name == "runway"
+                else metric
+                for metric in quant.metrics
+            )
+        }
+    )
+    with pytest.raises(ValueError, match="unresolved Case 2 Core metric"):
+        _direct_case2_ig(contradictory)
+
+
+def test_ig_v1_1_accepts_actual_normal_and_approved_provisional_quant():
+    case1 = _direct_case1_ig()
+    case2 = _direct_case2_ig()
+    quant = load_demo_profile(ROOT, "TEM").analysis.quant
+    optional = {"dilution", "revenue_per_share_growth"}
+    provisional_quant = quant.model_copy(
+        update={
+            "metrics": tuple(
+                metric.model_copy(
+                    update={
+                        "state": ResolutionState.UNRESOLVED,
+                        "value": None,
+                        "grade": None,
+                    }
+                )
+                if metric.name in optional
+                else metric
+                for metric in quant.metrics
+            ),
+            "coverage": 0.75,
+            "provisional": True,
+        }
+    )
+    provisional = _direct_case2_ig(provisional_quant)
+    assert case1.final_grade != InvestmentGrade.U
+    assert case2.final_grade != InvestmentGrade.U
+    assert provisional.final_grade != InvestmentGrade.U
+
+
 def test_core_metric_cannot_be_relabelled_as_supporting():
     case1 = load_demo_profile(ROOT, "STRL").analysis.quant
     changed_case1 = tuple(
@@ -165,7 +362,7 @@ def test_core_metric_cannot_be_relabelled_as_supporting():
             )
         }
     )
-    with pytest.raises(ValueError, match="frozen Core 6"):
+    with pytest.raises(ValueError, match="cannot be supporting"):
         validate_case2_quant_snapshot(changed_case2)
 
 
@@ -298,6 +495,99 @@ def test_valuation_rejects_future_exit_multiple_evidence():
             evidence=profile.valuation_evidence,
             asymmetry_type=profile.asymmetry_type,
         )
+
+
+def test_valuation_json_restore_rejects_future_exit_multiple_evidence():
+    profile, valuation = _case2_valuation_kwargs()
+    payload = valuation.model_dump(mode="json")
+    payload["assumption_set"]["exit_multiples"][0]["as_of"] = (
+        profile.analysis.as_of + timedelta(seconds=1)
+    ).isoformat()
+    with pytest.raises(ValidationError, match="exit-multiple evidence"):
+        ValuationSnapshot.model_validate(payload)
+
+
+def test_analysis_json_assembly_rejects_future_valuation_evidence():
+    profile, _ = _case2_valuation_kwargs()
+    payload = profile.analysis.model_dump(mode="json")
+    payload["valuation"]["evidence_available_at"] = (
+        profile.analysis.as_of + timedelta(seconds=1)
+    ).isoformat()
+    with pytest.raises(ValidationError, match="evidence is not available"):
+        AnalysisSnapshot.model_validate(payload)
+
+
+def test_persistence_boundary_revalidates_future_exit_evidence_model_copy():
+    profile, valuation = _case2_valuation_kwargs()
+    future_multiples = tuple(
+        item.model_copy(update={"as_of": profile.analysis.as_of + timedelta(seconds=1)})
+        for item in valuation.assumption_set.exit_multiples
+    )
+    invalid_assumptions = valuation.assumption_set.model_copy(
+        update={"exit_multiples": future_multiples}
+    )
+    invalid_valuation = valuation.model_copy(
+        update={"assumption_set": invalid_assumptions}
+    )
+    invalid_analysis = profile.analysis.model_copy(
+        update={"valuation": invalid_valuation}
+    )
+    with pytest.raises(ValidationError, match="exit-multiple evidence"):
+        analysis_to_rows(
+            invalid_analysis,
+            instrument_id=profile.instrument_id,
+            company_id=profile.company_id,
+            created_at=profile.analysis.as_of,
+        )
+
+
+def test_normal_valuation_evidence_timing_survives_payload_round_trip():
+    profile, valuation = _case2_valuation_kwargs()
+    rows = analysis_to_rows(
+        profile.analysis,
+        instrument_id=profile.instrument_id,
+        company_id=profile.company_id,
+        created_at=profile.analysis.as_of,
+    )
+    restored = analysis_from_row(rows.root)
+    assert restored.valuation is not None
+    assert restored.valuation.evidence_available_at == valuation.evidence_available_at
+    assert restored.valuation.assumption_set == valuation.assumption_set
+
+
+def test_late_retrieval_of_previously_public_evidence_is_allowed():
+    identity = ValuationIdentity(
+        snapshot_id="late-retrieval",
+        ticker="TEST",
+        period_end=date(2025, 12, 31),
+        available_at=AUDIT_AS_OF,
+        as_of=AUDIT_AS_OF,
+    )
+    evidence = ValuationEvidenceState(
+        credible_evidence_count=2,
+        company_economics_stable=True,
+        company_economics_rapidly_changing=False,
+        available_at=AUDIT_AS_OF - timedelta(days=30),
+        retrieved_at=AUDIT_AS_OF + timedelta(days=30),
+    )
+    valuation = build_case1_valuation(
+        identity=identity,
+        assumptions=_case1_assumptions(AUDIT_AS_OF - timedelta(days=30)),
+        current_price=100,
+        current_eps=5,
+        required_return=0.15,
+        evidence=evidence,
+        asymmetry_type=AsymmetryType.BALANCED,
+    )
+    assert valuation.evidence_retrieved_at > valuation.as_of
+
+
+def test_new_ig_v1_1_evaluation_requires_preserved_valuation_publication_time():
+    profile, valuation = _case2_valuation_kwargs()
+    legacy = valuation.model_copy(update={"evidence_available_at": None})
+    result = _direct_case2_ig(valuation=legacy)
+    assert result.final_grade == InvestmentGrade.U
+    assert result.adjustments[0].reason == VALUATION_EVIDENCE_UNRESOLVED
 
 
 def _case1_assumptions(as_of: datetime) -> ValuationAssumptionSet:
@@ -512,6 +802,8 @@ def _persist_restore_and_compare(tmp_path: Path, previous: AnalysisSnapshot, cur
         restored_previous = analyses.get_analysis_snapshot(previous.snapshot_id)
         restored_current = analyses.get_analysis_snapshot(current.snapshot_id)
         assert restored_previous is not None and restored_current is not None
+        assert restored_current.valuation is not None
+        assert restored_current.valuation.evidence_available_at is not None
         return build_snapshot_diff(restored_previous, restored_current)
 
 

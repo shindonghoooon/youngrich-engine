@@ -215,9 +215,10 @@ No agent may silently invent these choices. See the
 - Exit criteria: three reference analyses round-trip, v1 replay remains intact, v1.1 is
   explicitly recorded, missing evidence remains `U`, and the independent audit/remote CI
   approval gate passes.
-- Audit status: local 428-test regression, 31-test reproduction matrix, and remote offline
-  CI PASS; live Tiingo execution remains pending. Main protection settings are unverified
-  because the available GitHub API request lacked permission.
+- Audit status: final follow-up local 451-test regression and focused decision/audit/docs
+  checks PASS; final remote offline CI is pending feature push. Live Tiingo execution
+  remains pending. Main PR/required-check protection is `UNKNOWN/PENDING_OWNER` because
+  the available GitHub API request lacked permission.
 - Non-goals: M12-B1 unblocking, production provider approval, realtime prices, new
   investment rules, migration, API, dashboard, or mobile UI.
 

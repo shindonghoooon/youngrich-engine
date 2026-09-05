@@ -114,6 +114,23 @@ The independent audit response subsequently passed locally on 2026-09-06:
 - Remote `Offline validation` CI: PASS on audit commit `dcd9090`
 - Main branch-protection settings: unverified; unauthenticated API returned 401
 
+The final audit follow-up is locally complete and awaiting its feature-branch CI:
+
+- Full suite: 451 passed
+- Direct IG v1.1 validates the exact Case/version/Core 8 or Core 6 contract; genuine
+  omissions become structured `U`, while reweighting, supporting disguise, fake Core,
+  Case/version mismatch, and contradictory state are rejected
+- The approved Case 2 shareholder-comparability provisional contract remains valid
+- Valuation publication time is preserved and revalidated at build, JSON restore,
+  Analysis assembly, persistence mapping/restore, and new IG v1.1 evaluation
+- `retrieved_at` is provenance, not publication time; late retrieval of already-public
+  evidence remains valid
+- Tracking Schema v0.2 and the Valuation evidence contract are backward-readable; no
+  migration was added, while legacy evidence gaps force new decisions to `U`
+- Live STRL/TEM/LPTH verification remains `PENDING_CREDENTIAL`
+- Main PR and required-check protection remains `UNKNOWN/PENDING_OWNER`; a 401/403 is not
+  evidence that protection is absent
+
 ## Next Product Task
 
 The limited operating vertical slice for STRL, TEM, and LPTH is now implemented for

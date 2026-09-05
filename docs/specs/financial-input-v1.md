@@ -2,11 +2,11 @@
 
 Status: FROZEN
 
-Version: 1.0
+Version: 1.1 (annual comparability input contract; calculations unchanged)
 
 Authoritative: YES
 
-Last Updated: 2026-09-04
+Last Updated: 2026-09-06
 
 Implementation: `engine/financials.py`, `engine/financial_metrics.py`, `schemas/raw_financials.schema.json`
 
@@ -32,6 +32,17 @@ Raw Data
 `unit_scale`로 해석한 뒤 `FinancialHistory`에서 통화 기본 단위로 정규화한다.
 `FinancialHistory.periods`는 `fiscal_period_end` 오름차순으로 정렬된다.
 `fiscal_year`는 회사가 보고한 FY label이며 달력연도와 같다고 가정하지 않는다.
+
+## Annual comparability contract
+
+Case 1과 Case 2의 연간 입력은 회사가 보고한 연속 `fiscal_year` label이어야 하며,
+인접한 `fiscal_period_end` 간격은 330–400 calendar days여야 한다. 이 범위는 정상적인
+52/53주 회계연도와 윤년을 허용한다. 결산기 변경에 따른 단기/장기 전환기간이나 범위를
+벗어난 관측치는 자동 연간화하지 않고 비교 불가 입력으로 거부한다. 별도 comparable
+normalization이 승인되기 전까지 해당 분석은 unresolved/invalid로 남는다.
+
+이 v1.1 변경은 입력 허용 계약만 강화한다. Frozen Case 1/2의 metric, 가중치, 등급
+임계값, 계산식에는 숫자 변경이 없다.
 
 생성된 `AnalysisSnapshot`은 raw data가 아니다. 계산 규칙이나 입력 데이터가 바뀌면
 언제든 다시 생성할 수 있는 파생 결과다. 보고서와 Dashboard도 snapshot을 렌더링할

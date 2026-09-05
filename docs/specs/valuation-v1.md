@@ -2,11 +2,11 @@
 
 Status: FROZEN
 
-Version: 1.0
+Version: 1.1 (evidence-timing contract; numeric valuation v1 unchanged)
 
 Authoritative: YES
 
-Last Updated: 2026-09-04
+Last Updated: 2026-09-06
 
 Implementation: `engine/valuation_engine.py`
 
@@ -27,6 +27,26 @@ and exit multiple evidence in an immutable `ValuationAssumptionSet`.
 
 A price-only update produces a new output with the same assumption id/version. It must
 not expand a multiple or change a growth/margin/stage assumption because price changed.
+
+## Evidence timing and restoration
+
+Every newly calculated `ValuationSnapshot` preserves the public availability time of the
+valuation evidence. Optional `retrieved_at` records when the source was collected and is
+not a substitute for publication time. Evidence may be retrieved after an historical
+analysis cutoff when its independently recorded `available_at` was already on or before
+that cutoff.
+
+At calculation, JSON restoration, `AnalysisSnapshot` assembly, and persistence mapping:
+
+- each Conservative/Base/Premium exit-multiple evidence `as_of` must be on or before the
+  evaluation `as_of`;
+- the evidence bundle `available_at` must be on or before the evaluation `as_of`;
+- a future timestamp is invalid and cannot reach a resolved Investment Grade; and
+- a legacy valuation lacking preserved evidence availability remains readable, but a new
+  IG v1.1 decision from it is `U` with `VALUATION_EVIDENCE_UNRESOLVED`.
+
+This v1.1 evidence contract changes no required-return sensitivity, terminal-stage rule,
+exit range, Expectation Gap rule, or valuation formula.
 
 ## Case 1
 

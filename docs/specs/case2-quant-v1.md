@@ -157,6 +157,13 @@ Growth = latest comparable annual / prior comparable annual - 1
 
 An incomparable IPO/SPAC denominator is unresolved.
 
+### Annual input comparability
+
+Core 계산에 사용되는 연간 관측치는 연속된 회사 보고 FY label과 330–400일의 인접
+`fiscal_period_end` 간격을 모두 충족해야 한다. 이는 52/53주 회계연도와 윤년을
+허용하지만 결산기 변경 전환기간이나 임의 단기기간을 자동 연간화하지 않는다. 이 입력
+계약 강화는 Core 6 가중치, threshold, formula를 변경하지 않는다.
+
 ## Score, missing-data policy, and guardrail
 
 Grade points are A=4, B=3, C=2, D=1, X=0. Quant grades are A >=3.50,

@@ -77,7 +77,9 @@ Seed and price import are idempotent: an identical stable ID is reported as
 - Case 2 market cap is explicitly estimated from RAW close and the fixture's latest
   officially reported actual shares. `reported_shares_as_of` remains visible.
 - Unconfirmed split/share basis leaves valuation and IG unresolved.
-- Financial, share, exit-evidence, and price timestamps cannot postdate `assessment_as_of`.
+- Financial, share, valuation-evidence publication, exit-evidence, and price timestamps
+  cannot postdate `assessment_as_of`; later `retrieved_at` provenance does not make
+  already-public evidence look ahead.
 - Quant, Current, Narrative, and assumptions are loaded from the reference analysis and
   remain unchanged during repricing.
 - A Funding Stress cap remains active after a lower price.
@@ -92,6 +94,9 @@ Seed and price import are idempotent: an identical stable ID is reported as
 - Current flags preserve YES/NO/UNKNOWN. Missing Current evidence is not silently
   described as a negative flag. Existing relational booleans remain active-membership
   projections; the immutable payload is authoritative for tri-state comparisons.
+- Direct IG v1.1 execution validates the requested Case, supported Quant version, exact
+  frozen Core set/weights, and resolution consistency. Missing Core evidence yields `U`;
+  policy-disguised or contradictory inputs fail validation.
 
 STRL has no approved company valuation/analyst assumption fixture. Its price and Quant can
 be stored, but derived valuation remains absent and IG is `U` with

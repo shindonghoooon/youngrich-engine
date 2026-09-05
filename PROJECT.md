@@ -107,7 +107,7 @@ These documents marked `FROZEN` are authoritative for production behavior:
 - [Investment Grade v1](docs/specs/investment-grade-v1.md)
 - [Investment Grade v1.1 Decision Safety](docs/specs/investment-grade-v1.1.md) —
   default for explicitly selected new decision snapshots; v1 remains replayable
-- [Tracking Schema v0.1](docs/specs/tracking-schema-v1.md)
+- [Tracking Schema v0.2](docs/specs/tracking-schema-v1.md)
 - [Tracking Engine v1](docs/specs/tracking-engine-v1.md)
 - [Persistence Phase 1](docs/specs/persistence-v1.md)
 - [Performance Engine Phase 1](docs/specs/performance-engine-v1.md)
@@ -143,7 +143,7 @@ and historical discussion. Changes require an explicit design decision and versi
 - [Investment Grade Decision Safety v1.1](docs/validation/decision-safety-v1.1.md): PASS
 - [Tiingo Data Pilot v0.1](docs/validation/m12-b0.1-tiingo-data-pilot-v0.1.md): PASS WITH GAPS
 - Calculation, Tracking, Persistence, and Performance regression: PASS
-- Limited operating independent audit: LOCAL AND REMOTE CI PASS / LIVE PENDING
+- Limited operating independent audit follow-up: LOCAL PASS / REMOTE CI PENDING / LIVE PENDING
 - [Historical Stress Calibration v0.1](docs/validation/historical-performance-stress-calibration-v0.1.md): COMPLETE, outcome-aware only
 - Systematic unbiased backtest: NOT YET COMPLETE
 
