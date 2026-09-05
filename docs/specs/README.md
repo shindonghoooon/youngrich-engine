@@ -22,6 +22,8 @@ validation, ADRs, and dated reports cannot override these documents.
 - [Narrative v1](narrative-v1.md)
 - [Common Valuation v1](valuation-v1.md)
 - [Investment Grade v1](investment-grade-v1.md)
+- [Investment Grade v1.1 Decision Safety](investment-grade-v1.1.md) — new decisions;
+  v1 remains available for historical replay
 
 ## Tracking, persistence, and performance
 

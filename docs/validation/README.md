@@ -13,6 +13,7 @@ redefine thresholds, weights, formulas, or gates.
 - [Historical Performance Stress Calibration v0.1 — COMPLETE](historical-performance-stress-calibration-v0.1.md)
 - [M12-B0 Free-First Data Pilot v0.1 — FAIL gate](m12-b0-free-data-pilot-v0.1.md)
 - [M12-B0.1 Tiingo Data Pilot — PASS WITH GAPS](m12-b0.1-tiingo-data-pilot-v0.1.md)
+- [Investment Grade Decision Safety v1.1 — PASS](decision-safety-v1.1.md)
 
 Additional dated Case 1 validation evidence remains under `reports/`. The original
 manual Case 1 stress report is explicitly superseded; reproducible company reports remain

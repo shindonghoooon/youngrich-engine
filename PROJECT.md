@@ -2,7 +2,7 @@
 
 Status: ACTIVE PROJECT INDEX
 
-Last Updated: 2026-09-04
+Last Updated: 2026-09-05
 
 ## Mission
 
@@ -84,7 +84,8 @@ approved. The parallel future product track is:
 EOD Market Data → API → Dashboard → PWA / Alerts
 ```
 
-No provider or product technology has been selected.
+No production provider or product technology has been selected. Tiingo is approved only
+for the bounded research and limited operating pilot described above.
 
 ## Frozen Components
 
@@ -97,6 +98,8 @@ These documents marked `FROZEN` are authoritative for production behavior:
 - [Narrative v1](docs/specs/narrative-v1.md)
 - [Common Valuation v1](docs/specs/valuation-v1.md)
 - [Investment Grade v1](docs/specs/investment-grade-v1.md)
+- [Investment Grade v1.1 Decision Safety](docs/specs/investment-grade-v1.1.md) —
+  default for explicitly selected new decision snapshots; v1 remains replayable
 - [Tracking Schema v0.1](docs/specs/tracking-schema-v1.md)
 - [Tracking Engine v1](docs/specs/tracking-engine-v1.md)
 - [Persistence Phase 1](docs/specs/persistence-v1.md)
@@ -116,7 +119,7 @@ and historical discussion. Changes require an explicit design decision and versi
 | Layer | Status |
 |---|---|
 | Case 1 and Case 2 calculation engines | COMPLETE |
-| Common Valuation and Investment Grade | COMPLETE |
+| Common Valuation and Investment Grade | COMPLETE / v1.1 SAFETY VERSIONED |
 | Tracking domain, price, diff, thesis, and entry-zone engines | COMPLETE |
 | Append-only persistence and Alembic schema | COMPLETE |
 | Performance horizons, MDD coverage, benchmark alpha, and cohorts | COMPLETE |
@@ -130,6 +133,8 @@ and historical discussion. Changes require an explicit design decision and versi
 ## Validation Status
 
 - [Case 2 Golden Validation](docs/validation/case2-golden-validation-2026-09-01.md): PASS
+- [Investment Grade Decision Safety v1.1](docs/validation/decision-safety-v1.1.md): PASS
+- [Tiingo Data Pilot v0.1](docs/validation/m12-b0.1-tiingo-data-pilot-v0.1.md): PASS WITH GAPS
 - Calculation, Tracking, Persistence, and Performance regression: PASS
 - [Historical Stress Calibration v0.1](docs/validation/historical-performance-stress-calibration-v0.1.md): COMPLETE, outcome-aware only
 - Systematic unbiased backtest: NOT YET COMPLETE
@@ -168,6 +173,7 @@ the same historical validation protocol.
 
 ## Documentation Map
 
+- [Developer handoff](docs/DEVELOPER_HANDOFF.md) — current checkpoint and next execution point
 - [Roadmap](docs/roadmap.md) — milestone status, next work, and open decision gates
 - [Architecture](docs/architecture.md) — stable system boundaries and data flow
 - [Frozen specifications](docs/specs/) — authoritative rules and contracts
