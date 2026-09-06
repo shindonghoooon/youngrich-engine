@@ -2,7 +2,7 @@
 
 Last Updated: 2026-09-06
 
-Status: LIMITED OPERATING FLOW — IMPLEMENTATION REVIEW
+Status: READ-ONLY WATCHLIST — IMPLEMENTATION
 
 This file is a short execution handoff. Frozen specifications and executable tests remain
 authoritative; validation fixtures are not current investment recommendations.
@@ -10,8 +10,9 @@ authoritative; validation fixtures are not current investment recommendations.
 ## Repository State
 
 - Repository: `D:\youngrich-engine\youngrich-engine`
-- Current feature branch: `feat/limited-operating-flow`
-- Feature base: `82af10f1365bf313d211853f135d85fe5d05f29e`
+- Current feature branch: `feat/read-only-watchlist`
+- Feature base: `9c7d8fd18477ba74664ae7c4eda6055274347b64`
+- Limited operating merge: `9c7d8fd18477ba74664ae7c4eda6055274347b64`
 - B0/Tiingo branch: `main`
 - B0/Tiingo checkpoint: `858ca72176c013113b1e0c9d37d46dee6f8b2fbc`
 - Safety worktree: `D:\youngrich-engine\youngrich-engine-decision-safety-v1_1`
@@ -139,7 +140,7 @@ The final audit follow-up passed locally and on the feature branch:
   branch protection is configured for `main`; PR requirement and `Offline validation` as
   a required check are therefore not currently enforced
 
-## Next Product Task
+## Current Product Task
 
 The limited operating vertical slice for STRL, TEM, and LPTH is implemented and has passed
 the bounded 2026-09-04 Tiingo exact-session verification. Read
@@ -169,9 +170,34 @@ the frozen schema has no independent price-only evaluation root, derived Valuati
 comparisons are append-only ignored JSONL artifacts rather than fake AnalysisSnapshots. No
 migration or investment-policy change was made.
 
-Review must confirm the full suite, docs, independent audit, remote CI, and diff checks
-before main merge. After this
-checkpoint is accepted, the next product task is the minimum mobile/read-only view over
-this output contract. Do not add realtime prices, broker integration, a new provider, a
-full historical universe, automatic threshold changes, a new Case, or a large systematic
-backtest.
+PR #1 merged this operating connection into `main`. The current task is the bounded local
+[read-only watchlist](read-only-watchlist.md). It opens the existing SQLite database in
+read-only mode, validates the append-only evaluation JSONL, and renders stored summary,
+detail, evidence, and comparison information for STRL, TEM, and LPTH. It must never seed,
+refresh, revalue, migrate, or call an external provider.
+
+Use the repository-local Python 3.12.14 environment and explicit executable:
+
+```text
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+.\.venv\Scripts\python.exe -m pytest tests/test_read_only_watchlist.py -p no:cacheprovider
+.\.venv\Scripts\python.exe -m pytest tests -p no:cacheprovider
+.\.venv\Scripts\python.exe -m streamlit run app/read_only_watchlist.py --server.address 127.0.0.1
+```
+
+The default SQLite and JSONL paths remain ignored local artifacts. Missing data produces
+guidance, not automatic creation. Browser QA is local desktop plus an approximately 390px
+viewport; remote phone access is not implemented. Do not add realtime prices, broker
+integration, a new provider, a database migration, public hosting, automatic threshold
+changes, a new Case, or a large systematic backtest. M12-B1 remains blocked.
+
+Local verification on 2026-09-06 passed 17 dedicated watchlist tests, 7 documentation
+consistency tests, and the full 468-test offline suite. Desktop QA covered summary,
+selection, existing comparison, and reload. A 390 x 844 viewport stacked the cards without
+horizontal overflow. The corresponding ignored 2026-09-04 live-validation SQLite and
+JSONL pair was then opened through the same read-only screen: STRL 486.49 USD / `U`, TEM
+64.62 USD / `B`, and LPTH 9.67 USD / `U` matched the stored evaluations, and both source
+hashes remained unchanged after reload. See the exact reusable command in
+[read-only-watchlist.md](read-only-watchlist.md). This was local desktop and 390 px browser
+QA, not remote-phone access, and made no provider call. The feature remains local
+`DEMO/VALIDATION`; final PR review and protected merge are the remaining checkpoint gates.

@@ -87,12 +87,14 @@ EOD Market Data → API → Dashboard → PWA / Alerts
 No production provider or product technology has been selected. Tiingo is approved only
 for the bounded research and limited operating pilot described above.
 
-The parallel product track is now implementing a bounded
-[STRL/TEM/LPTH operating connection](docs/limited-operating-flow.md) on branch
-`feat/limited-operating-flow`. It is `DEMO/VALIDATION`, does not unblock M12-B1, and does
-not authorize a production feed or UI. Its independent-audit response adds input and
-comparison safety contracts without changing frozen weights, thresholds, or grades; see
-the [audit validation record](docs/validation/limited-operating-independent-audit-2026-09-06.md).
+The bounded [STRL/TEM/LPTH operating connection](docs/limited-operating-flow.md) is merged
+and validated. The parallel product track is now a local
+[read-only watchlist](docs/read-only-watchlist.md) over its stored outputs. Both remain
+`DEMO/VALIDATION`, do not unblock M12-B1, and do not authorize a production feed, remote
+deployment, or current investment recommendation. The operating flow's independent-audit
+response adds input and comparison safety contracts without changing frozen weights,
+thresholds, or grades; see the
+[audit validation record](docs/validation/limited-operating-independent-audit-2026-09-06.md).
 
 ## Frozen Components
 
@@ -133,6 +135,8 @@ and historical discussion. Changes require an explicit design decision and versi
 | Generic Calibration Kernel M12-A | COMPLETE / FROZEN |
 | M12-B0 free-first data pilot | COMPLETE WITH FAIL ENTRY VERDICT |
 | M12-B0.1 Tiingo free-price pilot | COMPLETE / LIVE PRICE PATH PASS WITH GAPS |
+| STRL/TEM/LPTH limited operating connection | COMPLETE / DEMO-VALIDATION |
+| Local read-only watchlist | ACTIVE / DEMO-VALIDATION |
 | Systematic unbiased historical backtest | NOT IMPLEMENTED |
 | Production EOD ingestion/API/dashboard/PWA | NOT IMPLEMENTED |
 | Case 3–6 engines | NOT IMPLEMENTED |
@@ -184,6 +188,7 @@ the same historical validation protocol.
 
 - [Developer handoff](docs/DEVELOPER_HANDOFF.md) — current checkpoint and next execution point
 - [Limited operating flow](docs/limited-operating-flow.md) — STRL/TEM/LPTH DEMO/VALIDATION CLI
+- [Read-only watchlist](docs/read-only-watchlist.md) — local stored-result viewing contract
 - [Roadmap](docs/roadmap.md) — milestone status, next work, and open decision gates
 - [Architecture](docs/architecture.md) — stable system boundaries and data flow
 - [Frozen specifications](docs/specs/) — authoritative rules and contracts

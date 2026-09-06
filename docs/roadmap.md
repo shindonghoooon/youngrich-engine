@@ -15,7 +15,7 @@ Allowed milestone states are `COMPLETE`, `ACTIVE`, `PLANNED`, `BLOCKED`, and
 
 - Latest completed milestone: **M12-A Universal Calibration Kernel**
 - Current milestone: **M12-B0 Free-First Data Pilot — ACTIVE / DATA GATE**
-- Parallel product pilot: **STRL/TEM/LPTH limited operating connection — ACTIVE / DEMO**
+- Parallel product pilot: **local read-only STRL/TEM/LPTH watchlist — ACTIVE / DEMO**
 - Future product track: **M13–M15 — PLANNED**
 - Case expansion: **M16 — DEFERRED**
 
@@ -205,7 +205,7 @@ No agent may silently invent these choices. See the
 
 ## Limited Operating Connection Pilot
 
-- Status: ACTIVE — DEMO/VALIDATION
+- Status: COMPLETE — DEMO/VALIDATION
 - Goal: connect the existing STRL/TEM/LPTH analyses, append-only SQLite identity/history,
   exact-session Tiingo RAW closes, version-preserving Valuation, explicitly selected IG
   v1.1, and structured price-only comparison through one local CLI.
@@ -217,13 +217,29 @@ No agent may silently invent these choices. See the
   approval gate passes.
 - Audit status: final follow-up local 451-test regression and remote Offline validation
   PASS on `225c5a7`. Bounded Tiingo exact-session execution for STRL/TEM/LPTH passed for
-  2026-09-04, including separate-process reload. Authenticated owner review confirmed no
-  repository ruleset or classic branch protection for `main`; PR and required-check
-  enforcement are currently not configured.
+  2026-09-04, including separate-process reload. The feature merged through PR #1; `main`
+  now requires a pull request and the GitHub Actions `pytest` check, with strict base
+  freshness and no force push or deletion.
 - Non-goals: M12-B1 unblocking, production provider approval, realtime prices, new
   investment rules, migration, API, dashboard, or mobile UI.
 
 Execution guide: [Limited Operating Flow](limited-operating-flow.md).
+
+## Local Read-only Watchlist Pilot
+
+- Status: ACTIVE — DEMO/VALIDATION
+- Goal: render the already stored STRL/TEM/LPTH operating evaluations without moving any
+  calculation, provider, persistence write, or policy behavior into the view.
+- Deliverables: Korean summary/detail cards, explicit `U` and data-error states, preserved
+  v1 versus v1.1 labels, existing comparison output, and a reload-only local control.
+- Entry criteria: limited operating connection merged and its bounded live/reload check
+  complete.
+- Exit criteria: synthetic offline UI tests, desktop and narrow-viewport browser QA, full
+  regression, documentation consistency, and remote feature-branch CI pass.
+- Non-goals: realtime data, public deployment, remote phone access, new API or database
+  schema, write controls, alerts, provider changes, or investment-rule changes.
+
+Operating guide: [Read-only Watchlist](read-only-watchlist.md).
 
 ## M13 EOD Data Layer
 
