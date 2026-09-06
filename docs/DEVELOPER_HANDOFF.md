@@ -140,6 +140,24 @@ The final audit follow-up passed locally and on the feature branch:
   branch protection is configured for `main`; PR requirement and `Offline validation` as
   a required check are therefore not currently enforced
 
+## Read-only watchlist UI/UX pass
+
+The merged read-only watchlist remains the calculation and storage boundary. The
+follow-up branch **feat/watchlist-readability**, based on main commit **cb243a5**, changes
+display semantics and layout only:
+
+- investment-review summary cards with explicit company grade, investment grade, stored
+  price/date, provenance, and principal unresolved or cap reason
+- separate Core, recent-trend, valuation/decision-limit, Supporting, and diagnostic areas
+- metric-semantic percent, percentage-point, multiple, and month formatting
+- one/two/three-column responsive card layout at the 768 and 1200 CSS-pixel boundaries
+- keyboard-accessible ticker selection, stored-file reload, and diagnostic expander
+
+The saved STRL/TEM/LPTH SQLite and JSONL pair remains unchanged, no network or write path
+was added, and the screen still performs no seed, refresh, revalue, or investment
+calculation. Full validation results belong in **docs/read-only-watchlist.md**; do not
+push or open a PR for this follow-up without a separate user request.
+
 ## Current Product Task
 
 The limited operating vertical slice for STRL, TEM, and LPTH is implemented and has passed
