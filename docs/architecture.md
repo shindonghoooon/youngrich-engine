@@ -6,7 +6,23 @@ Authoritative for Boundaries: YES
 
 Authoritative for Investment Rules: NO — see `docs/specs/`
 
-Last Updated: 2026-09-04
+Last Updated: 2026-09-06
+
+## Generic operating boundary
+
+The current product milestone is Generic Stock Onboarding v1 + Minimal Watchlist
+Registry. [The authoritative contract](specs/generic-stock-onboarding-v1.md) separates
+Company/Instrument identification, existing Router/Case adapters, immutable analysis,
+and optional persistent tracking membership. Source acquisition supplies validated
+normalized inputs; the product API never discovers test fixtures by ticker.
+The future Agent orchestrates services; deterministic engines own investment policy.
+
+SQLite/PostgreSQL-compatible additive membership and input-receipt tables preserve old
+history. ACTIVE membership, not a Python ticker tuple, drives the read-only UI and the
+future Daily API. Initial analysis and existing price-only evaluations are distinct
+read projections. U is a decision state; missing records are data states.
+No collection, scheduling or LLM is introduced. Daily EOD Tracking is next and requires
+separate approval; M12-B1 systematic remains BLOCKED.
 
 ## System flow
 

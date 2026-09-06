@@ -21,6 +21,10 @@ outputs. It does not add, recompute, or reinterpret any investment rule.
 
 ## Boundary
 
+Additive extension: [Generic Onboarding / Registry v1](generic-stock-onboarding-v1.md)
+owns migration `20260906_0003`, membership lifecycle and immutable input receipts.
+The Phase 1 historical tables and append-only policy below are unchanged.
+
 ```text
 Pydantic domain model
         ↕ explicit mapper

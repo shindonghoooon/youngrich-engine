@@ -2,7 +2,7 @@
 
 Last Updated: 2026-09-06
 
-Status: READ-ONLY WATCHLIST — IMPLEMENTATION
+Status: GENERIC STOCK ONBOARDING + MINIMAL REGISTRY — IMPLEMENTATION CHECKPOINT
 
 This file is a short execution handoff. Frozen specifications and executable tests remain
 authoritative; validation fixtures are not current investment recommendations.
@@ -10,8 +10,8 @@ authoritative; validation fixtures are not current investment recommendations.
 ## Repository State
 
 - Repository: `D:\youngrich-engine\youngrich-engine`
-- Current feature branch: `feat/read-only-watchlist`
-- Feature base: `9c7d8fd18477ba74664ae7c4eda6055274347b64`
+- Current feature branch: `feat/generic-stock-onboarding`
+- Feature base / PR #3 main merge: `c772ce71f505a0edfad0623330f46576b21595fd`
 - Limited operating merge: `9c7d8fd18477ba74664ae7c4eda6055274347b64`
 - B0/Tiingo branch: `main`
 - B0/Tiingo checkpoint: `858ca72176c013113b1e0c9d37d46dee6f8b2fbc`
@@ -26,6 +26,40 @@ commit with `git rev-parse HEAD`; this document intentionally does not predict i
 commit hash.
 
 ## Decision Safety v1.1
+
+Current work: [Generic onboarding/registry v1](specs/generic-stock-onboarding-v1.md).
+Manual normalized-input CLI reuses Case 1/2 and IG v1.1, stores immutable initial
+analysis/input receipts, and optionally registers ACTIVE tracking. IONQ proof uses a
+test-only conversion of the existing Golden fixture, not a product fixture lookup.
+New UI enumeration reads membership by Instrument ID. Explicit migration/legacy
+bootstrap is required; the UI never modifies a DB or JSONL. Existing local live files
+are not automatically migrated or revalued. No Tiingo call/credential is needed here.
+
+Use `python -m research.watchlist migrate --db <path>` then
+`python -m research.stock_onboarding analyze --input <normalized.json> --db <path> --track`.
+The full contract documents membership add/list/deactivate and legacy bootstrap.
+Next is Daily EOD Tracking, then Stock Agent, Fundamental/Event, KPI Automation and
+Brief/Alerts, each separately approved. Do not start them in this checkpoint.
+M12-B1 systematic remains BLOCKED. Historical validation sections below remain records
+of their original scopes, not proof of new production approvals.
+
+Checkpoint validation: new non-demo-list ticker IONQ persisted through the existing
+Case 2 engines with Quant 2.80 / D (existing cash-burn/dilution cap), resolved
+Valuation and IG v1.1 D, ACTIVE membership. These are the existing validation fixture's
+2026-09-01 inputs/assumptions, not a new company-research conclusion. Missing assumptions
+also passed as a saved U and ACTIVE membership. Legacy STRL/TEM/LPTH replay passed.
+Local full offline regression: **516 passed**, including 33 added tests over the
+483-test merged base. Documentation consistency, whitespace checks, clean/legacy
+Alembic upgrade and PostgreSQL table-definition compilation passed. Migration revision:
+`20260906_0003` (no prior migration rewritten).
+
+Browser QA used a separate temporary SQLite/JSONL pair: synthetic legacy test prices
+plus fixture-based IONQ. Four cards, IONQ detail/decision trace, desktop 1280 px and
+mobile 390 px widths passed with no page horizontal overflow. Reload left both SHA-256
+hashes unchanged. Temporary QA server stopped; existing real live files were untouched.
+AppTest covers absent price, missing analysis, stable Instrument joins and no-write
+rendering. Remote feature CI is reported in the task after the final push, not inferred
+from these local checks. No PR creation or main merge is authorized in this checkpoint.
 
 Read:
 

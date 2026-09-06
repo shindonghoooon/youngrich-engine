@@ -14,9 +14,9 @@ Allowed milestone states are `COMPLETE`, `ACTIVE`, `PLANNED`, `BLOCKED`, and
 ## Current state
 
 - Latest completed milestone: **M12-A Universal Calibration Kernel**
-- Current milestone: **M12-B0 Free-First Data Pilot — ACTIVE / DATA GATE**
-- Parallel product pilot: **local read-only STRL/TEM/LPTH watchlist — ACTIVE / DEMO**
-- Future product track: **M13–M15 — PLANNED**
+- CURRENT product: **Generic Stock Onboarding v1 + Minimal Watchlist Registry — ACTIVE**
+- NEXT product: **Daily EOD Tracking v1 — PLANNED**
+- Separate research: **M12-B0 data gate; M12-B1 systematic — BLOCKED**
 - Case expansion: **M16 — DEFERRED**
 
 M12-A is complete and frozen. M12-B0 found no validated free historical-security
@@ -227,7 +227,7 @@ Execution guide: [Limited Operating Flow](limited-operating-flow.md).
 
 ## Local Read-only Watchlist Pilot
 
-- Status: ACTIVE — DEMO/VALIDATION
+- Status: COMPLETE — PR #3 merged; historical QA retained
 - Goal: render the already stored STRL/TEM/LPTH operating evaluations without moving any
   calculation, provider, persistence write, or policy behavior into the view.
 - Deliverables: Korean summary/detail cards, explicit `U` and data-error states, preserved
@@ -241,37 +241,48 @@ Execution guide: [Limited Operating Flow](limited-operating-flow.md).
 
 Operating guide: [Read-only Watchlist](read-only-watchlist.md).
 
-## M13 EOD Data Layer
+## Current: Generic Stock Onboarding v1 + Minimal Watchlist Registry
+
+- Status: ACTIVE — implementation checkpoint on `feat/generic-stock-onboarding`
+- Deliverables: validated normalized artifact, stable identity, existing Case 1/2
+  adapters, append-only snapshot/receipt, optional membership and dynamic read-only view.
+- Proof: IONQ beyond the legacy three-ticker set, fixture converted only in tests.
+- U and missing analysis/price records are explicit distinct states, not forced grades.
+- Contract: [Generic Stock Onboarding v1](specs/generic-stock-onboarding-v1.md).
+- No Agent, acquisition, scheduler, new provider or investment-policy change.
+
+## Next: Daily EOD Tracking v1
 
 - Status: PLANNED
-- Goal: Add reliable production EOD fundamentals/market-data inputs.
-- Deliverables: provider adapter boundary, provenance, idempotent ingestion, corporate
-  actions, retries, and data-quality monitoring.
-- Entry criteria: provider and delayed/realtime requirements approved.
-- Exit criteria: reproducible EOD snapshots and failure handling.
-- Decisions required: production EOD provider and licensing.
-- Non-goals: investment-rule changes.
+- Goal: ACTIVE Watchlist -> EOD price -> existing-assumption price-only revaluation -> Diff.
+- Entry criteria: onboarding checkpoint and explicit Daily scope approved.
+- Preserve business-analysis dates; no daily rerun of every company's full analysis.
+- Decisions required: provider usage/licensing, completed-session handling and schedule.
+- Non-goals: investment-policy changes or systematic historical execution.
 
-## M14 API / Dashboard
+## Then: Stock Agent v1
 
 - Status: PLANNED
-- Goal: Expose stored canonical results without moving calculations into the view layer.
-- Deliverables: read API, authentication decision, ranking/detail views, source and
-  unresolved visibility.
-- Entry criteria: M13 stable and API/dashboard technologies approved.
-- Exit criteria: UI renders persisted snapshots faithfully.
-- Decisions required: API and dashboard technology.
-- Non-goals: dashboard-owned scoring.
+- Natural-language orchestration calls approved Onboarding and Daily services.
+- Agent never owns grade formulas, gate/cap rules, invented assumptions or KPI values.
+- Requires separate approval; not included in onboarding v1.
 
-## M15 PWA / Mobile / Alerts
+## Then: Fundamental / Event Tracker
 
 - Status: PLANNED
-- Goal: Add mobile access and event delivery after the data/API foundation is stable.
-- Deliverables: PWA strategy, notification preferences, filing/grade/thesis alert policy.
-- Entry criteria: M14 complete and product scope approved.
-- Exit criteria: reliable delivery with audit trail and user controls.
-- Decisions required: PWA timing, delayed versus realtime needs, alert channels.
-- Non-goals: brokerage execution.
+- New filing/earnings -> review -> new fundamental snapshot. Never overwrite history.
+
+## Then: Tracking KPI Automation
+
+- Status: PLANNED
+- Connect observations to explicit versioned Thesis/KPI definitions from initial analysis.
+- Never silently change KPI sets or invent missing observations.
+
+## Then: Daily Brief / Alerts
+
+- Status: PLANNED
+- Delivery follows stable onboarding, daily, event and KPI services.
+- PWA, remote access and delivery channels remain separately approved scope.
 
 ## M16 Cases 3–6
 

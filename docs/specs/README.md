@@ -27,6 +27,8 @@ validation, ADRs, and dated reports cannot override these documents.
 
 ## Tracking, persistence, and performance
 
+- [Generic Stock Onboarding + Minimal Registry v1](generic-stock-onboarding-v1.md)
+
 - [Tracking Schema v0.2](tracking-schema-v1.md)
 - [Tracking Engine v1](tracking-engine-v1.md)
 - [Persistence Phase 1](persistence-v1.md)
