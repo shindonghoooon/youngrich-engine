@@ -192,7 +192,7 @@ integration, a new provider, a database migration, public hosting, automatic thr
 changes, a new Case, or a large systematic backtest. M12-B1 remains blocked.
 
 Local verification on 2026-09-06 passed 17 dedicated watchlist tests, 7 documentation
-consistency tests, and the full 467-test offline suite. Desktop QA covered summary,
+consistency tests, and the full 468-test offline suite. Desktop QA covered summary,
 selection, existing comparison, and reload. A 390 x 844 viewport stacked the cards without
 horizontal overflow. The feature remains local `DEMO/VALIDATION`; remote CI and Draft PR
 review are the remaining checkpoint gates.
