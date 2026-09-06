@@ -29,6 +29,27 @@ from engine.tracking_models import BinaryEvidenceState, TrendFlag
 DB_ENV = "YOUNGRICH_WATCHLIST_DB_PATH"
 ARTIFACT_ENV = "YOUNGRICH_WATCHLIST_ARTIFACT_PATH"
 
+REASON_LABELS = {
+    "VALUATION_ASSUMPTIONS_UNAVAILABLE": "가치평가 가정 없음",
+    "MANDATORY_NARRATIVE_UNRESOLVED": "사업 근거 부족",
+    "VALUATION_COMBINATION_UNRESOLVED": "평가 조건 판단 보류",
+    "VALUATION_UNRESOLVED": "가치평가 미해결",
+    "VALUATION_EVIDENCE_UNRESOLVED": "가치평가 근거 부족",
+    "MANDATORY_QUANT_UNRESOLVED": "기업등급 근거 부족",
+    "MANDATORY_QUANT_METRICS_MISSING": "필수 기업지표 부족",
+    "SHARE_SPLIT_BASIS_UNRESOLVED": "주식수·분할 기준 미확인",
+    "INVESTMENT_GRADE_UNRESOLVED": "투자등급 판단 보류",
+    "CURRENT_UNRESOLVED_OPTIONAL": "최신 흐름 미확인",
+    "Valuation Confidence cap": "가치평가 신뢰도 상한",
+    "Case 2 Narrative gate cap": "사업 근거 상한",
+    "Case 1 Quant cap": "기업등급 상한",
+    "Case 2 Quant cap": "기업등급 상한",
+    "Current Trend cap": "최신 흐름 상한",
+    "Commercial Deterioration cap": "사업 악화 상한",
+    "Funding Stress cap": "자금 부담 상한",
+    "THESIS_BREAKER_OR_NARRATIVE_BROKEN": "핵심 투자 논리 훼손",
+}
+
 
 def configured_paths(argv: list[str] | None = None) -> tuple[Path, Path]:
     parser = argparse.ArgumentParser(add_help=False)
@@ -60,6 +81,35 @@ def _expectation_gap(evaluation: OperatingEvaluation) -> str:
     return evaluation.valuation_result.output.expectation_gap.value
 
 
+def _investment_grade(value, *, show_code: bool = False) -> str:
+    if value.value == "U":
+        return "판단 보류 (코드 U)" if show_code else "판단 보류"
+    return value.value
+
+
+def _reason_label(reason: str) -> str:
+    if reason in REASON_LABELS:
+        return REASON_LABELS[reason]
+    if reason.startswith("MANDATORY_QUANT_METRICS_MISSING"):
+        return "필수 기업지표 부족"
+    return "기타 미해결 사유"
+
+
+def _status_labels(item: WatchlistItem) -> tuple[str, ...]:
+    evaluation = item.evaluation
+    price = item.price_snapshot
+    if evaluation is None or price is None:
+        return ()
+    labels: list[str] = []
+    if price.source == "SYNTHETIC_TEST_ONLY":
+        labels.append("예시 데이터")
+    if evaluation.assumption_set_id is not None:
+        labels.append("검증용 가정")
+    elif evaluation.usage_mode.value == "DEMO/VALIDATION" and not labels:
+        labels.append("검증 데이터")
+    return tuple(labels)
+
+
 def _assumption_label(evaluation: OperatingEvaluation) -> str:
     if evaluation.assumption_set_id is None:
         return "미제공 / 미해결"
@@ -69,9 +119,9 @@ def _assumption_label(evaluation: OperatingEvaluation) -> str:
 def _active_adjustments(evaluation: OperatingEvaluation) -> list[str]:
     return [
         (
-            f"{item.trigger.value}: {item.reason}"
+            f"{item.trigger.value}: {_reason_label(item.reason)}"
             + (
-                f" (상한 {item.maximum_grade.value})"
+                f" (상한 {_investment_grade(item.maximum_grade)})"
                 if item.maximum_grade is not None
                 else ""
             )
@@ -91,6 +141,9 @@ def _render_summary_item(item: WatchlistItem) -> None:
         analysis = item.reference_analysis
         assert evaluation is not None and analysis is not None
         st.caption(analysis.company_name)
+        labels = _status_labels(item)
+        if labels:
+            st.caption(" · ".join(labels))
         st.write(f"Case: `{analysis.case.value}`")
         st.metric(
             "평가에 사용한 종가",
@@ -100,18 +153,21 @@ def _render_summary_item(item: WatchlistItem) -> None:
             f"거래일 {evaluation.price_session_date.isoformat()} · {evaluation.price_basis.value.upper()}"
         )
         left, right = st.columns(2)
-        left.metric("Quant Grade", _value(analysis.quant.grade))
-        right.metric(
-            "파생 Investment Grade",
-            evaluation.investment_grade_result.final_grade.value,
+        left.metric(
+            "투자등급",
+            _investment_grade(evaluation.investment_grade_result.final_grade),
         )
+        right.metric("기업등급", _value(analysis.quant.grade))
         st.write(
             f"정책: `{evaluation.investment_grade_policy_version.value}` · "
             f"실행 모델: `{evaluation.investment_grade_result.model_version}`"
         )
         st.write(f"Expectation Gap: **{_expectation_gap(evaluation)}**")
         if evaluation.unresolved_reasons:
-            st.warning("미해결: " + ", ".join(evaluation.unresolved_reasons))
+            st.warning(
+                "판단 보류: "
+                + " · ".join(_reason_label(reason) for reason in evaluation.unresolved_reasons)
+            )
         st.caption(f"평가 시각 {evaluation.assessment_as_of.isoformat()}")
 
 
@@ -123,22 +179,29 @@ def _render_judgement(item: WatchlistItem) -> None:
     st.subheader("판단 요약")
     left, right = st.columns(2)
     left.metric(
-        "원본 AnalysisSnapshot 등급",
-        (
-            analysis.investment_grade.final_grade.value
-            if analysis.investment_grade is not None
-            else "미제공"
-        ),
+        "투자등급",
+        _investment_grade(evaluation.investment_grade_result.final_grade),
     )
-    right.metric(
-        "가격 기반 파생 IG v1.1",
-        evaluation.investment_grade_result.final_grade.value,
-    )
+    right.metric("기업등급", _value(analysis.quant.grade))
     st.caption(
         "원본 분석을 수정한 새 분석이 아니라, 저장된 분석과 가정을 보존한 별도 파생 평가입니다."
     )
+    source_grade = (
+        _investment_grade(analysis.investment_grade.final_grade, show_code=True)
+        if analysis.investment_grade is not None
+        else "미제공"
+    )
+    st.write(f"원본 AnalysisSnapshot 투자등급: **{source_grade}**")
+    if evaluation.investment_grade_result.final_grade.value == "U":
+        st.caption("파생 투자등급 기술 코드: U")
     if evaluation.unresolved_reasons:
-        st.warning("판단 미해결 사유: " + ", ".join(evaluation.unresolved_reasons))
+        st.warning(
+            "판단 보류 사유: "
+            + " · ".join(_reason_label(reason) for reason in evaluation.unresolved_reasons)
+        )
+        with st.expander("미해결 사유 코드", expanded=False):
+            for reason in evaluation.unresolved_reasons:
+                st.write(f"- {_reason_label(reason)} · `{reason}`")
     adjustments = _active_adjustments(evaluation)
     if adjustments:
         st.write("활성 gate / cap")
@@ -153,8 +216,8 @@ def _render_business(item: WatchlistItem) -> None:
     assert analysis is not None
     st.subheader("사업 분석")
     st.write(
-        f"Quant: **{_value(analysis.quant.grade)}** · "
-        f"점수 {_number(analysis.quant.score)} · "
+        f"기업등급: **{_value(analysis.quant.grade)}** · "
+        f"기업점수 {_number(analysis.quant.score)} · "
         f"상태 `{analysis.quant.state.value}`"
     )
     with st.expander("Core 지표", expanded=True):
@@ -214,8 +277,13 @@ def _render_valuation(item: WatchlistItem) -> None:
     valuation = evaluation.valuation_result
     if valuation is None:
         st.info(
-            "Valuation: 미제공 / 미해결 · "
-            + (", ".join(evaluation.unresolved_reasons) or "승인된 가정이 없습니다.")
+            "가치평가: 미제공 / 미해결 · "
+            + (
+                " · ".join(
+                    _reason_label(reason) for reason in evaluation.unresolved_reasons
+                )
+                or "승인된 가정이 없습니다."
+            )
         )
         return
     output = valuation.output
@@ -261,13 +329,18 @@ def _render_comparison(item: WatchlistItem) -> None:
         f"({diff.price_return:+.2%})"
     )
     st.write(
-        f"Investment Grade: {diff.previous_grade.value} → {diff.current_grade.value}"
+        "투자등급: "
+        f"{_investment_grade(diff.previous_grade, show_code=True)} → "
+        f"{_investment_grade(diff.current_grade, show_code=True)}"
     )
     st.write(
         f"Expectation Gap: {diff.previous_expectation_gap} → {diff.current_expectation_gap}"
     )
     if diff.unresolved_reasons:
-        st.warning("현재 미해결: " + ", ".join(diff.unresolved_reasons))
+        st.warning(
+            "현재 판단 보류: "
+            + " · ".join(_reason_label(reason) for reason in diff.unresolved_reasons)
+        )
 
 
 def _render_load_error(error: WatchlistDataError) -> None:
@@ -295,23 +368,18 @@ def main() -> None:
     st.markdown(
         """
         <style>
-        .yr-banner { position: sticky; top: 2.8rem; z-index: 999; padding: .85rem 1rem;
-          border: 1px solid #d97706; border-radius: .65rem; background: #fff7ed;
-          color: #7c2d12; font-weight: 700; margin-bottom: 1rem; }
         [data-testid="stMetricValue"] { font-size: 1.45rem; }
         [data-testid="stMarkdownContainer"], [data-testid="stMetric"] {
           overflow-wrap: anywhere;
         }
         @media (max-width: 430px) {
           .block-container { padding-left: .85rem; padding-right: .85rem; }
-          .yr-banner { top: 2.5rem; font-size: .88rem; }
           [data-testid="stHorizontalBlock"] { flex-wrap: wrap; }
           [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
             min-width: 100% !important; width: 100% !important; flex: 1 1 100% !important;
           }
         }
         </style>
-        <div class="yr-banner">DEMO / VALIDATION · 저장된 분석 조회 — 실시간 데이터나 투자 추천이 아님</div>
         """,
         unsafe_allow_html=True,
     )
@@ -325,6 +393,20 @@ def main() -> None:
     except WatchlistDataError as error:
         _render_load_error(error)
         return
+
+    page_labels = sorted(
+        {
+            label
+            for item in snapshot.items
+            for label in _status_labels(item)
+        }
+    )
+    if page_labels:
+        st.caption("데이터 상태: " + " · ".join(page_labels))
+    st.caption(
+        "투자등급: 이 평가에 사용한 가격에서의 투자 매력 · "
+        "기업등급: 성장·수익·재무 상태"
+    )
 
     st.subheader("요약")
     columns = st.columns(len(SUPPORTED_TICKERS))
@@ -349,9 +431,6 @@ def main() -> None:
     _render_evidence(item)
     _render_comparison(item)
 
-    st.caption(
-        "이 화면은 저장된 결과만 읽습니다. 가격 갱신, 재평가, 가정 수정, 외부 API 호출을 수행하지 않습니다."
-    )
 
 
 if __name__ == "__main__":

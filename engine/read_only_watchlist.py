@@ -25,7 +25,7 @@ from engine.limited_operating import (
 )
 from engine.persistence.repositories import AnalysisRepository, PriceRepository
 from engine.persistence.session import create_session_factory
-from engine.tracking_models import AnalysisSnapshot, FrozenDomainModel
+from engine.tracking_models import AnalysisSnapshot, FrozenDomainModel, PriceSnapshot
 
 
 class WatchlistErrorCode(str, Enum):
@@ -59,19 +59,32 @@ class WatchlistItem(FrozenDomainModel):
     message: str | None = None
     evaluation: OperatingEvaluation | None = None
     reference_analysis: AnalysisSnapshot | None = None
+    price_snapshot: PriceSnapshot | None = None
     previous_evaluation: OperatingEvaluation | None = None
     latest_diff: OperatingEvaluationDiff | None = None
 
     @model_validator(mode="after")
     def validate_state(self) -> Self:
         if self.state == WatchlistItemState.READY:
-            if self.evaluation is None or self.reference_analysis is None:
-                raise ValueError("ready watchlist item requires evaluation and analysis")
+            if (
+                self.evaluation is None
+                or self.reference_analysis is None
+                or self.price_snapshot is None
+            ):
+                raise ValueError(
+                    "ready watchlist item requires evaluation, analysis, and price"
+                )
             if self.evaluation.ticker != self.ticker:
                 raise ValueError("watchlist ticker must match evaluation")
             if self.reference_analysis.snapshot_id != self.evaluation.reference_analysis_snapshot_id:
                 raise ValueError("watchlist analysis must match evaluation reference")
-        elif self.evaluation is not None or self.reference_analysis is not None:
+            if self.price_snapshot.price_snapshot_id != self.evaluation.price_snapshot_id:
+                raise ValueError("watchlist price must match evaluation reference")
+        elif (
+            self.evaluation is not None
+            or self.reference_analysis is not None
+            or self.price_snapshot is not None
+        ):
             raise ValueError("non-ready watchlist item cannot carry partial display data")
         return self
 
@@ -114,17 +127,18 @@ def _readonly_engine(db_path: Path):
     return create_engine("sqlite+pysqlite://", creator=connect, future=True)
 
 
-def _evaluation_price_is_consistent(session, evaluation: OperatingEvaluation) -> bool:
+def _evaluation_price(session, evaluation: OperatingEvaluation) -> PriceSnapshot | None:
     price = PriceRepository(session).get_price_snapshot(evaluation.price_snapshot_id)
     if price is None:
-        return False
-    return (
+        return None
+    consistent = (
         price.ticker == evaluation.ticker
         and price.price == evaluation.price
         and price.currency == evaluation.currency
         and price.price_basis == evaluation.price_basis
         and price.timestamp == evaluation.price_timestamp
     )
+    return price if consistent else None
 
 
 def load_watchlist(
@@ -182,7 +196,8 @@ def load_watchlist(
                     )
                 )
                 continue
-            if not _evaluation_price_is_consistent(session, latest):
+            latest_price = _evaluation_price(session, latest)
+            if latest_price is None:
                 items.append(
                     WatchlistItem(
                         ticker=ticker,
@@ -195,7 +210,7 @@ def load_watchlist(
             previous = history[-2] if len(history) >= 2 else None
             latest_diff = None
             if previous is not None:
-                if not _evaluation_price_is_consistent(session, previous):
+                if _evaluation_price(session, previous) is None:
                     items.append(
                         WatchlistItem(
                             ticker=ticker,
@@ -214,6 +229,7 @@ def load_watchlist(
                     state=WatchlistItemState.READY,
                     evaluation=latest,
                     reference_analysis=analysis,
+                    price_snapshot=latest_price,
                     previous_evaluation=previous,
                     latest_diff=latest_diff,
                 )

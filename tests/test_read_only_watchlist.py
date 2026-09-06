@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import shutil
 import sqlite3
@@ -12,7 +13,7 @@ from pathlib import Path
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from app.read_only_watchlist import ARTIFACT_ENV, DB_ENV
+from app.read_only_watchlist import ARTIFACT_ENV, DB_ENV, _reason_label, _status_labels
 from engine.limited_operating import (
     LimitedOperatingService,
     exact_us_close_snapshot,
@@ -166,8 +167,8 @@ def test_app_loads_without_token_and_shows_stored_three_ticker_bundle(
     app = _run_app(monkeypatch, db_path, artifacts)
     text = _app_text(app)
 
-    assert "DEMO / VALIDATION" in text
-    assert "실시간 데이터나 투자 추천이 아님" in text
+    assert "예시 데이터" in text
+    assert "검증용 가정" in text
     assert all(ticker in text for ticker in ("STRL", "TEM", "LPTH"))
     assert "123.45 USD" in text
     assert "51.25 USD" in text
@@ -175,6 +176,23 @@ def test_app_loads_without_token_and_shows_stored_three_ticker_bundle(
     assert "평가에 사용한 종가" in text
     assert "investment-grade-v1.1-safety" in text
     assert "저장 결과 다시 읽기" in [button.label for button in app.button]
+    assert "투자등급" in text
+    assert "기업등급" in text
+    assert "투자등급: 이 평가에 사용한 가격에서의 투자 매력" in text
+    assert "기업등급: 성장·수익·재무 상태" in text
+    assert "Quant Grade" not in text
+    assert "Investment Grade" not in text
+    assert "투자 추천" not in text
+    assert "종목 추천" not in text
+    assert "투자 책임" not in text
+    assert "참고용" not in text
+
+    metrics = [(metric.label, metric.value) for metric in app.metric]
+    assert metrics[:3] == [
+        ("평가에 사용한 종가", "123.45 USD"),
+        ("투자등급", "판단 보류"),
+        ("기업등급", "A"),
+    ]
 
 
 def test_valid_u_is_not_presented_as_a_data_error(stored_watchlist, monkeypatch):
@@ -192,7 +210,29 @@ def test_valid_u_is_not_presented_as_a_data_error(stored_watchlist, monkeypatch)
     app = _run_app(monkeypatch, db_path, artifacts)
     text = _app_text(app)
     assert "VALUATION_ASSUMPTIONS_UNAVAILABLE" in text
+    assert "가치평가 가정 없음" in text
+    assert "판단 보류" in text
+    assert "파생 투자등급 기술 코드: U" in text
     assert "저장 데이터 오류" not in text
+
+
+def test_display_state_comes_from_data_and_assumption_provenance(stored_watchlist):
+    db_path, artifacts = stored_watchlist
+    snapshot = load_watchlist(db_path, artifacts)
+    strl = snapshot.item_for("STRL")
+    tem = snapshot.item_for("TEM")
+
+    assert _status_labels(strl) == ("예시 데이터",)
+    assert _status_labels(tem) == ("예시 데이터", "검증용 가정")
+
+    stored_strl = strl.model_copy(
+        update={"price_snapshot": strl.price_snapshot.model_copy(update={"source": "TIINGO"})}
+    )
+    stored_tem = tem.model_copy(
+        update={"price_snapshot": tem.price_snapshot.model_copy(update={"source": "TIINGO"})}
+    )
+    assert _status_labels(stored_strl) == ("검증 데이터",)
+    assert _status_labels(stored_tem) == ("검증용 가정",)
 
 
 def test_missing_current_and_narrative_preserve_unknown(stored_watchlist, monkeypatch):
@@ -212,12 +252,47 @@ def test_source_v1_and_derived_v1_1_are_distinguished(stored_watchlist, monkeypa
     assert not app.exception
     text = _app_text(app)
 
-    assert "원본 AnalysisSnapshot 등급" in text
-    assert "가격 기반 파생 IG v1.1" in text
+    assert "원본 AnalysisSnapshot 투자등급" in text
+    assert "투자등급" in text
+    assert "기업등급" in text
     assert "investment-grade-v1.1-safety" in text
     assert "원본 분석을 수정한 새 분석이 아니라" in text
     assert "valuation_confidence" in text
     assert "상한 B" in text
+
+
+def test_unknown_reason_keeps_original_code_visible(stored_watchlist, monkeypatch):
+    db_path, artifacts = stored_watchlist
+    _append_evaluation(
+        db_path, artifacts, "STRL", date(2026, 9, 5), 124.00, "unknown-reason"
+    )
+    snapshot = load_watchlist(db_path, artifacts)
+    original = snapshot.item_for("STRL").evaluation
+    assert original is not None
+    altered = original.model_copy(
+        update={
+            "unresolved_reasons": ("NEW_UNMAPPED_REASON",),
+        }
+    )
+    rows = [
+        (
+            json.dumps(altered.model_dump(mode="json"), sort_keys=True)
+            if original.evaluation_id in line
+            else line
+        )
+        for line in artifacts.read_text(encoding="utf-8").splitlines()
+    ]
+    artifacts.write_text("\n".join(rows) + "\n", encoding="utf-8")
+
+    app = _run_app(monkeypatch, db_path, artifacts)
+    text = _app_text(app)
+    assert _reason_label("NEW_UNMAPPED_REASON") == "기타 미해결 사유"
+    assert "기타 미해결 사유" in text
+    assert "NEW_UNMAPPED_REASON" in text
+
+
+def test_known_grade_cap_uses_plain_korean_label():
+    assert _reason_label("Valuation Confidence cap") == "가치평가 신뢰도 상한"
 
 
 def test_one_evaluation_has_no_comparison_and_two_use_existing_diff(stored_watchlist):

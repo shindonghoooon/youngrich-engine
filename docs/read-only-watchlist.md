@@ -72,11 +72,15 @@ assumption identity, and Expectation Gap from one `OperatingEvaluation`. A separ
 newer price is never mixed into the card. The immutable reference `AnalysisSnapshot`
 provides company name, Quant, Current, Narrative, and Thesis/KPI evidence.
 
-- `U` is shown only when the stored evaluation is a valid unresolved decision and its
-  reason remains visible.
+- a stored Investment Grade `U` is displayed as `판단 보류`; technical code `U` and every
+  structured reason remain available in detail.
 - missing/corrupt files, missing reference analysis, and inconsistent price linkage are
-  data errors, not Investment Grade `U`.
+  data errors, not `판단 보류`.
 - original v1 analysis and derived v1.1 evaluation are labeled separately.
+- user-facing `기업등급` is Quant business quality, while `투자등급` is attractiveness at
+  the evaluation price; internal field names and policy contracts remain unchanged.
+- the compact state label is derived from stored provenance: synthetic inputs are
+  `예시 데이터`, and persisted DEMO/VALIDATION assumptions are `검증용 가정`.
 - absent Current/Narrative/Thesis data remains `미제공 / 미해결`; UNKNOWN flags never
   become confirmed NO.
 - comparison appears only when two valid stored evaluations have the existing structured
@@ -99,8 +103,8 @@ Git.
 
 Local validation on 2026-09-06:
 
-- focused watchlist plus documentation checks: 21 passed
-- full offline suite: 465 passed
+- focused watchlist plus documentation checks: 24 passed
+- full offline suite: 468 passed
 - desktop browser: summary, TEM detail/comparison, and reload PASS
 - 390 x 844 browser viewport: vertical card layout and zero horizontal overflow PASS
 - external provider/write/revalue/seed boundary: guarded by regression tests; PASS
