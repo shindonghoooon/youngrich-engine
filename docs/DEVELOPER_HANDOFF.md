@@ -128,16 +128,23 @@ The final audit follow-up passed locally and on the feature branch:
   evidence remains valid
 - Tracking Schema v0.2 and the Valuation evidence contract are backward-readable; no
   migration was added, while legacy evidence gaps force new decisions to `U`
-- Live STRL/TEM/LPTH verification remains `PENDING_CREDENTIAL`
-- Main PR and required-check protection remains `UNKNOWN/PENDING_OWNER`; a 401/403 is not
-  evidence that protection is absent
+- Live STRL/TEM/LPTH exact-session verification: PASS for 2026-09-04 using Tiingo RAW
+  closes; stored prices were STRL 486.49 USD, TEM 64.62 USD, and LPTH 9.67 USD
+- Derived IG v1.1 results: STRL `U` (`VALUATION_ASSUMPTIONS_UNAVAILABLE`), TEM `B`
+  (Valuation Confidence cap retained), and LPTH `U`
+  (`VALUATION_COMBINATION_UNRESOLVED`)
+- Separate-process `show` reload: PASS for all three tickers; immutable reference analyses
+  and assumption versions were preserved and derived evaluations remained append-only
+- Authenticated owner review confirmed that neither a repository ruleset nor classic
+  branch protection is configured for `main`; PR requirement and `Offline validation` as
+  a required check are therefore not currently enforced
 
 ## Next Product Task
 
-The limited operating vertical slice for STRL, TEM, and LPTH is now implemented for
-review. Read `docs/limited-operating-flow.md` and run the documented CLI. The current
-shell has no Tiingo credential, so live verification remains `PENDING_CREDENTIAL`; the
-offline implementation and regression tests are the review evidence.
+The limited operating vertical slice for STRL, TEM, and LPTH is implemented and has passed
+the bounded 2026-09-04 Tiingo exact-session verification. Read
+`docs/limited-operating-flow.md` for the execution contract. The committed implementation,
+offline regression evidence, and separately recorded live results are the review evidence.
 
 Implemented flow:
 

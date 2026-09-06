@@ -216,9 +216,10 @@ No agent may silently invent these choices. See the
   explicitly recorded, missing evidence remains `U`, and the independent audit/remote CI
   approval gate passes.
 - Audit status: final follow-up local 451-test regression and remote Offline validation
-  PASS on `225c5a7`. Live Tiingo execution remains pending. Main PR/required-check
-  protection is `UNKNOWN/PENDING_OWNER`: classic protection returned 401 and no public
-  repository ruleset was visible, which is not proof that protection is absent.
+  PASS on `225c5a7`. Bounded Tiingo exact-session execution for STRL/TEM/LPTH passed for
+  2026-09-04, including separate-process reload. Authenticated owner review confirmed no
+  repository ruleset or classic branch protection for `main`; PR and required-check
+  enforcement are currently not configured.
 - Non-goals: M12-B1 unblocking, production provider approval, realtime prices, new
   investment rules, migration, API, dashboard, or mobile UI.
 

@@ -73,12 +73,15 @@ The approved Case 2 shareholder-comparability provisional exception remains unch
 
 ## Boundaries and unresolved items
 
-- No Tiingo credential was present during local validation. STRL, TEM, and LPTH live
-  execution remains `PENDING_CREDENTIAL` for session 2026-09-04.
-- Remote CI passed on follow-up commit `225c5a7`. The classic branch-protection endpoint
-  returned 401 and the publicly visible repository-ruleset list was empty; this does not
-  prove that main lacks protection. PR requirement and required-check designation remain
-  `UNKNOWN/PENDING_OWNER` pending an authenticated owner review.
+- The bounded Tiingo live run passed for STRL, TEM, and LPTH on the exact 2026-09-04
+  session using one RAW close per ticker. Derived IG v1.1 results were STRL `U`, TEM `B`,
+  and LPTH `U`; the unresolved and cap reasons were preserved. Separate-process reload
+  passed for all three tickers. Raw provider responses and local persistence artifacts
+  were not committed.
+- Remote CI passed on follow-up commit `225c5a7`. An authenticated owner review on
+  2026-09-06 confirmed that no repository ruleset or classic branch protection is
+  configured for `main`; PR requirement and `Offline validation` required-check
+  enforcement are currently absent.
 - M12-B1 remains BLOCKED. This work does not solve historical universe membership,
   delisted continuity, terminal payoff, or production data licensing.
 - Historical records without fingerprints or v0.2 input-scope fields remain readable,

@@ -124,5 +124,26 @@ git diff --cached --check
 Live calls do not belong in pytest. Re-run the bounded live command only when a credential
 is available and record the exact tickers, session date, and observation count separately.
 
+### Bounded live verification — 2026-09-06
+
+The existing CLI was executed against Tiingo for the completed 2026-09-04 session using
+an isolated ignored local database and artifact file. This is `DEMO/VALIDATION`, not a
+current investment recommendation or production-provider approval.
+
+- STRL: one exact-session RAW close at 486.49 USD; derived IG v1.1 `U` because no approved
+  valuation assumptions exist (`VALUATION_ASSUMPTIONS_UNAVAILABLE`)
+- TEM: one exact-session RAW close at 64.62 USD; derived IG v1.1 `B`, with the existing
+  Valuation Confidence cap retained and assumption set `TEM-validation_case2_2026_09_v1`
+  version 1 unchanged
+- LPTH: one exact-session RAW close at 9.67 USD; derived IG v1.1 `U` with
+  `VALUATION_COMBINATION_UNRESOLVED`, using assumption set
+  `LPTH-validation_case2_2026_09_v1` version 1 unchanged
+- Separate-process `show` reload succeeded for all three tickers. Reference analyses were
+  not overwritten, derived evaluations were appended, and local DB/JSONL/provider data
+  remain excluded from Git.
+
+This result closes the bounded credential/live-execution gate only. M12-B1 remains
+`BLOCKED`, and no production market-data decision follows from this validation.
+
 The independent audit response and reproduction matrix are recorded in
 [Limited Operating Independent Audit Response](validation/limited-operating-independent-audit-2026-09-06.md).
