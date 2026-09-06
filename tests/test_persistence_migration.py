@@ -31,10 +31,12 @@ def test_initial_migration_builds_schema_from_empty_database(tmp_path):
         legacy_basis = connection.execute(text("select price_basis, adjustment_version from price_snapshots where price_snapshot_id = 'legacy-price'" )).one()
     engine.dispose()
 
-    assert revision == "20260904_0002"
+    assert revision == "20260906_0003"
     assert legacy_basis == ("raw", "")
     assert {
         "companies",
+        "watchlist_memberships",
+        "onboarding_records",
         "instruments",
         "analysis_snapshots",
         "metric_results",
