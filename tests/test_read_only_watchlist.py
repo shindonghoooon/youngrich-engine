@@ -7,7 +7,7 @@ import shutil
 import sqlite3
 import subprocess
 import sys
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -47,6 +47,7 @@ from engine.read_only_watchlist import (
     load_watchlist,
 )
 from engine.research_data.tiingo import TiingoClient
+from engine.watchlist_registry import WatchlistRepository
 from engine.tracking_models import (
     InvestmentGrade,
     InvestmentGradePolicyVersion,
@@ -112,6 +113,11 @@ def stored_watchlist(tmp_path: Path) -> tuple[Path, Path]:
             session, repo_root=ROOT, artifact_path=artifact_path
         )
         service.seed_demo()
+        for index, ticker in enumerate(("STRL", "TEM", "LPTH")):
+            profile = load_demo_profile(ROOT, ticker)
+            WatchlistRepository(session).add(profile.instrument_id,
+                at=datetime(2026, 9, 6, 12, tzinfo=UTC) + timedelta(seconds=index),
+                reference_analysis_snapshot_id=profile.analysis.snapshot_id)
     engine.dispose()
 
     _append_evaluation(db_path, artifact_path, "STRL", date(2026, 9, 4), 123.45, "one")

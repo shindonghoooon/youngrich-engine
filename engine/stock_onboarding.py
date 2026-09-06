@@ -22,7 +22,7 @@ from engine.case2_quant import Case2QuantInput, build_case2_quant
 from engine.investment_grade_engine_v1_1 import build_investment_grade_v1_1
 from engine.models import CaseType
 from engine.narrative_engine import derive_gate_from_snapshot
-from engine.persistence.models import OnboardingRecordRow, ThesisDefinitionRow, TrackingKPIDefinitionRow, ValuationAssumptionRow
+from engine.persistence.models import OnboardingRecordRow, PriceSnapshotRow, ThesisDefinitionRow, TrackingKPIDefinitionRow, ValuationAssumptionRow
 from engine.persistence.repositories import AnalysisRepository, IdentityRepository, PriceRepository, ValuationRepository
 from engine.persistence.schemas import Company, Instrument, SourceReference
 from engine.router import RouterInput, route_case
@@ -111,6 +111,9 @@ class OnboardingInput(FrozenDomainModel):
             raise ValueError("created_at cannot precede as_of")
         if self.company.company_id != self.instrument.company_id:
             raise ValueError("Company / Instrument identity mismatch")
+        if any(not value.strip() for value in (self.company.company_id, self.instrument.instrument_id,
+                self.company.canonical_name, self.instrument.ticker, self.instrument.exchange)):
+            raise ValueError("stable identity and display fields cannot be empty")
         if self.financial_currency != self.instrument.currency:
             raise ValueError("financial currency must match instrument")
         if any(source.available_at > self.as_of for source in self.sources):
@@ -134,6 +137,11 @@ class OnboardingInput(FrozenDomainModel):
             if any(s.filing_date > self.case1.available_at.date()
                    for p in self.case1.history.periods for s in p.sources):
                 raise ValueError("financial availability precedes source filing")
+        if self.case1_current is not None and (
+            self.case1_current.case != AnalysisCase.CASE_1_PROFITABLE_GROWTH
+            or self.case1_current.model_version != "case1-current-v1-frozen"
+        ):
+            raise ValueError("Case 1 Current requires the existing versioned Case 1 overlay")
         if self.price is not None:
             p = self.price
             if (self.price_instrument_id != self.instrument.instrument_id
@@ -162,6 +170,14 @@ class OnboardingInput(FrozenDomainModel):
                 evidence_retrieved_at=v.evidence.retrieved_at,
                 require_evidence_available_at=True,
             )
+        if self.price is not None:
+            information_times = [s.available_at for s in self.sources]
+            information_times.extend(p.available_at for p in components if p is not None)
+            if self.valuation is not None:
+                information_times.extend([self.valuation.shares_available_at, self.valuation.evidence.available_at])
+                information_times.extend(e.as_of for e in self.valuation.assumptions.exit_multiples)
+            if self.price.timestamp < max(information_times):
+                raise ValueError("price precedes required public information; cannot pair old price with later evidence")
         return self
 
 
@@ -195,7 +211,8 @@ class Case1OnboardingAdapter:
         result = adapter.evaluate(part.model_copy(update={
             "snapshot_id": snapshot_id, "quant_snapshot_id": snapshot_id + "-quant",
         }), inputs.as_of)
-        return result.model_copy(update={"current_trend": inputs.case1_current})
+        current = inputs.case1_current.model_copy(update={"snapshot_id": snapshot_id + "-current"}) if inputs.case1_current else None
+        return result.model_copy(update={"current_trend": current})
 
 
 class Case2OnboardingAdapter:
@@ -210,6 +227,7 @@ class Case2OnboardingAdapter:
             raise ValueError("Case 2 financial input is not eligible")
         current = build_case2_current_trend(inputs.case2_current.model_copy(update={
             "snapshot_id": snapshot_id + "-current", "annual_quant_grade": result.snapshot.grade,
+            "annual_revenue_growth": next(m.value for m in result.snapshot.metrics if m.name == "revenue_growth"),
         })) if inputs.case2_current else None
         return AnalysisSnapshot(
             snapshot_id=snapshot_id, ticker=inputs.instrument.ticker,
@@ -241,6 +259,8 @@ def build_onboarding_analysis(inputs: OnboardingInput, adapter, snapshot_id: str
     available_at = max([part.available_at for part in components] + [s.available_at for s in inputs.sources])
     period_end = max(part.period_end for part in components)
     v, price = inputs.valuation, inputs.price
+    if price is not None:
+        available_at = max(available_at, price.timestamp)
     reasons = []
     valuation = None
     if v is None:
@@ -298,9 +318,12 @@ class StockOnboardingService:
             with Session(bind=self.session.connection(), join_transaction_mode="rollback_only") as unit:
                 result = StockOnboardingService(unit)._analyze(inputs, track=track)
             self.session.commit()
+            self.session.expire_all()
             return result
         except Exception:
-            self.session.rollback()
+            # A repository rollback may already have ended the joined transaction.
+            # close() resets this reusable Session without rolling it back twice.
+            self.session.close()
             raise
 
     def _analyze(self, inputs: OnboardingInput, *, track: bool) -> OnboardingResult:
@@ -349,7 +372,9 @@ class StockOnboardingService:
                 if inputs.price is not None:
                     prices = PriceRepository(self.session)
                     old_price = prices.get_price_snapshot(inputs.price.price_snapshot_id)
-                    if old_price is not None and old_price != inputs.price:
+                    old_price_row = self.session.get(PriceSnapshotRow, inputs.price.price_snapshot_id)
+                    if old_price is not None and (old_price != inputs.price
+                            or old_price_row.instrument_id != inputs.instrument.instrument_id):
                         raise ValueError("price_snapshot_id already exists with different content")
                     if old_price is None:
                         prices.add_price_snapshot(inputs.price, instrument_id=inputs.instrument.instrument_id)

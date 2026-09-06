@@ -365,15 +365,15 @@ APP_CSS = """
 """
 
 
-def configured_paths(argv: list[str] | None = None) -> tuple[Path, Path]:
+def configured_paths(argv: list[str] | None = None) -> tuple[Path, Path | None]:
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--db", type=Path)
     parser.add_argument("--artifacts", type=Path)
     args, _ = parser.parse_known_args(sys.argv[1:] if argv is None else argv)
     return (
         args.db or Path(os.environ.get(DB_ENV, DEFAULT_DB_PATH)),
-        args.artifacts
-        or Path(os.environ.get(ARTIFACT_ENV, DEFAULT_ARTIFACT_PATH)),
+        args.artifacts or (Path(os.environ[ARTIFACT_ENV]) if os.environ.get(ARTIFACT_ENV)
+            else None if args.db or os.environ.get(DB_ENV) else DEFAULT_ARTIFACT_PATH),
     )
 
 
@@ -533,14 +533,14 @@ def _primary_reason(reasons: tuple[str, ...]) -> str | None:
 def _status_labels(item: WatchlistItem) -> tuple[str, ...]:
     evaluation = item.evaluation
     price = item.price_snapshot
-    if evaluation is None or price is None:
+    if evaluation is None:
         return ()
     labels: list[str] = []
-    if price.source == "SYNTHETIC_TEST_ONLY":
+    if price is not None and price.source == "SYNTHETIC_TEST_ONLY":
         labels.append("예시 데이터")
-    if evaluation.usage_mode.value == "DEMO/VALIDATION":
+    if _value(evaluation.usage_mode) == "DEMO/VALIDATION":
         labels.append("검증 데이터")
-    if evaluation.assumption_set_id is not None:
+    if evaluation.assumption_set_id is not None and _value(getattr(evaluation, "assumption_usage", evaluation.usage_mode)) == "DEMO/VALIDATION":
         labels.append("검증용 가정")
     return tuple(labels)
 
@@ -549,6 +549,14 @@ def _assumption_label(evaluation: OperatingEvaluation) -> str:
     if evaluation.assumption_set_id is None:
         return "없음"
     return f"{evaluation.assumption_set_id} / v{evaluation.assumption_version}"
+
+
+def _price_label(evaluation) -> str:
+    return f"{evaluation.price:,.2f} {evaluation.currency}" if evaluation.price is not None else "저장된 가격 평가 없음"
+
+
+def _price_date_label(evaluation) -> str:
+    return f"{evaluation.price_session_date.isoformat()} 종가" if evaluation.price_session_date else "가격 기준일 없음"
 
 
 def _active_adjustments(evaluation: OperatingEvaluation) -> list[str]:
@@ -787,8 +795,8 @@ def _summary_card_html(item: WatchlistItem) -> str:
       {reason}
       <div class="yr-price">
         <span class="yr-kicker">평가에 사용한 가격</span>
-        <strong>{evaluation.price:,.2f} {_escape(evaluation.currency)}</strong>
-        <div class="yr-date">{evaluation.price_session_date.isoformat()} 종가</div>
+        <strong>{_escape(_price_label(evaluation))}</strong>
+        <div class="yr-date">{_escape(_price_date_label(evaluation))}</div>
       </div>
       <div class="yr-detail-hint">아래에서 상세 분석 보기 ↓</div>
         </article>
@@ -866,8 +874,8 @@ def _render_judgement(item: WatchlistItem) -> None:
         <section class="yr-judgement-grid" aria-label="평가 가격과 기준일">
           <div class="yr-fact">
             <span class="yr-fact-label">평가에 사용한 가격</span>
-            <span class="yr-fact-value">{evaluation.price:,.2f} {_escape(evaluation.currency)}</span>
-            <span class="yr-date">{evaluation.price_session_date.isoformat()} 종가</span>
+            <span class="yr-fact-value">{_escape(_price_label(evaluation))}</span>
+            <span class="yr-date">{_escape(_price_date_label(evaluation))}</span>
           </div>
           <div class="yr-fact">
             <span class="yr-fact-label">재무 기준기간</span>
@@ -887,6 +895,8 @@ def _render_judgement(item: WatchlistItem) -> None:
         else:
             st.caption("활성 판정 제한 조건 없음")
     st.caption(
+        "저장된 최초 분석입니다. 가격만 갱신한 파생 평가가 아닙니다."
+        if getattr(evaluation, "is_initial_analysis", False) else
         "저장된 원본 분석과 가정은 그대로 두고, 지정 가격으로 만든 별도 파생 평가입니다."
     )
 
@@ -1019,8 +1029,8 @@ def _render_valuation_and_limits(item: WatchlistItem) -> None:
 
     st.subheader("가치평가 및 판정 제한")
     st.write(
-        f"평가에 사용한 가격: **{evaluation.price:,.2f} {evaluation.currency}** · "
-        f"{evaluation.price_session_date.isoformat()} 종가"
+        f"평가에 사용한 가격: **{_price_label(evaluation)}** · "
+        f"{_price_date_label(evaluation)}"
     )
     st.write(f"가정 상태: **{_assumption_label(evaluation)}**")
     valuation = evaluation.valuation_result
@@ -1066,13 +1076,14 @@ def _render_diagnostics(item: WatchlistItem) -> None:
         st.write(f"재무 기간: `{evaluation.financial_period_label}`")
         st.write(f"재무 공개 시각: `{evaluation.financial_available_at.isoformat()}`")
         st.write(f"원본 분석 as_of: `{evaluation.original_analysis_as_of.isoformat()}`")
-        st.write(f"파생 평가 as_of: `{evaluation.assessment_as_of.isoformat()}`")
+        evaluation_label = "최초 분석" if getattr(evaluation, "is_initial_analysis", False) else "파생 평가"
+        st.write(f"{evaluation_label} as_of: `{evaluation.assessment_as_of.isoformat()}`")
         st.write(
             f"정책: `{evaluation.investment_grade_policy_version.value}` / "
             f"`{evaluation.investment_grade_result.model_version}`"
         )
         st.write(
-            "파생 투자등급 기술 코드: "
+            f"{'최초' if getattr(evaluation, 'is_initial_analysis', False) else '파생'} 투자등급 기술 코드: "
             f"`{evaluation.investment_grade_result.final_grade.value}`"
         )
         source_grade = (
@@ -1086,8 +1097,10 @@ def _render_diagnostics(item: WatchlistItem) -> None:
         st.write(f"Quant model: `{analysis.quant.model_version}`")
         st.write(f"Quant 공개 시각: `{analysis.quant.available_at.isoformat()}`")
         st.write(f"Quant as_of: `{analysis.quant.as_of.isoformat()}`")
-        st.write(f"가격 timestamp: `{evaluation.price_timestamp.isoformat()}`")
-        st.write(f"원본 가격 기준: `{evaluation.price_basis.value}`")
+        st.write(f"가격 timestamp: `{evaluation.price_timestamp.isoformat() if evaluation.price_timestamp else '없음'}`")
+        st.write(f"원본 가격 기준: `{_value(evaluation.price_basis)}`")
+        if hasattr(evaluation, "tracking_kpi_status"):
+            st.write(f"추적 KPI 등록: `{evaluation.tracking_kpi_status}`")
         st.write(f"재무 단위: `{_value(evaluation.financial_unit)}`")
         st.write(f"회계 범위: `{_value(evaluation.accounting_scope)}`")
         st.write(f"주식수 기준: `{_value(evaluation.share_basis_version)}`")
@@ -1182,8 +1195,8 @@ def _render_load_error(error: WatchlistDataError) -> None:
         st.error("저장 데이터 오류")
     st.write(error.public_message)
     st.caption(
-        "데이터 생성은 이 화면이 아니라 기존 제한 운영 CLI에서 수행합니다. "
-        "docs/limited-operating-flow.md를 확인하세요."
+        "등록·마이그레이션은 research.watchlist, 분석은 research.stock_onboarding CLI에서 수행합니다. "
+        "docs/specs/generic-stock-onboarding-v1.md 및 기존 docs/limited-operating-flow.md를 확인하세요."
     )
 
 
@@ -1233,19 +1246,21 @@ def main() -> None:
     st.subheader("종목 요약")
     _render_summary(snapshot)
 
-    ready_tickers = [
-        item.ticker for item in snapshot.items if item.state == WatchlistItemState.READY
-    ]
-    if not ready_tickers:
+    ready_items = {
+        (item.ticker if sum(other.ticker == item.ticker for other in snapshot.items) == 1
+         else f"{item.ticker} · {item.exchange} · {item.instrument_id}"): item
+        for item in snapshot.items if item.state == WatchlistItemState.READY
+    }
+    if not ready_items:
         st.info("상세히 볼 수 있는 저장 평가가 없습니다.")
         return
 
     selected = st.selectbox(
         "상세 분석할 종목",
-        ready_tickers,
+        list(ready_items),
         key="watchlist_selected_ticker",
     )
-    item = snapshot.item_for(selected)
+    item = ready_items[selected]
     st.divider()
     st.header(f"{selected} 상세 분석")
     _render_judgement(item)

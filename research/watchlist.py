@@ -5,7 +5,9 @@ import json
 from pathlib import Path
 
 from alembic import command
+from alembic.autogenerate import compare_metadata
 from alembic.config import Config
+from alembic.migration import MigrationContext
 from sqlalchemy import inspect
 
 from engine.persistence.repositories import AnalysisRepository
@@ -40,6 +42,11 @@ def migrate(database: Path) -> None:
                     raise ValueError("unversioned DB columns differ from v0002; manual migration review required")
             if tables & {"watchlist_memberships", "onboarding_records"}:
                 raise ValueError("unstamped partial registry schema requires manual review")
+            with engine.connect() as connection:
+                differences = compare_metadata(MigrationContext.configure(connection), Base.metadata)
+            if any(change[0] != "add_table" or change[1].name not in
+                   {"watchlist_memberships", "onboarding_records"} for change in differences):
+                raise ValueError("unversioned DB constraints/types differ from v0002; manual review required")
             command.stamp(config, "20260904_0002")
         command.upgrade(config, "head")
     finally:

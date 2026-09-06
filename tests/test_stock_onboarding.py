@@ -160,3 +160,129 @@ def test_registry_lifecycle_preserves_history(onboarding_db):
     assert active.created_at == before.created_at
     assert active.reference_analysis_snapshot_id == result.analysis_snapshot_id
     assert len(AnalysisRepository(session).list_analysis_snapshots(before.instrument_id)) == 1
+
+
+def test_case1_adapter_preserves_strl_core8_and_u(onboarding_db):
+    from engine.financials import load_financial_history
+    from engine.models import CapitalModel
+    session, _ = onboarding_db
+    request = onboarding_input()
+    history = load_financial_history("data/raw/STRL.json")
+    payload = request.model_dump()
+    payload.update(request_id="case1-validation", case2=None, case2_current=None,
+        narrative=None, valuation=None, price=None, price_instrument_id=None, price_session_date=None,
+        financial_unit_scale=1, router={"profitable": True},
+        case1=dict(snapshot_id="input", quant_snapshot_id="input-quant", history=history,
+            capital_model=CapitalModel.PROJECT_BASED, available_at=request.as_of, as_of=request.as_of))
+    payload["instrument"]["ticker"] = "STRL"
+    payload["company"]["canonical_name"] = history.company_name
+    result = StockOnboardingService(session).analyze(OnboardingInput.model_validate(payload))
+    snapshot = AnalysisRepository(session).get_analysis_snapshot(result.analysis_snapshot_id)
+    assert len(snapshot.quant.metrics) == 8
+    assert snapshot.quant.score == pytest.approx(3.65)
+    assert snapshot.quant.grade.value == "A"
+    assert result.investment_grade.value == "U"
+
+
+@pytest.mark.parametrize("ticker", ["TEM", "LPTH", "IONQ"])
+def test_case2_frozen_quant_and_v1_1_unchanged(onboarding_db, ticker):
+    from engine.case2_analysis import build_case2_analysis
+    from engine.tracking_models import InvestmentGradePolicyVersion
+    session, _ = onboarding_db
+    request = onboarding_input(ticker)
+    expected = build_case2_analysis(build_input(load_fixture(ticker)).model_copy(update={
+        "investment_grade_policy_version": InvestmentGradePolicyVersion.V1_1}))
+    result = StockOnboardingService(session).analyze(request)
+    actual = AnalysisRepository(session).get_analysis_snapshot(result.analysis_snapshot_id)
+    assert actual.quant.metrics == expected.quant.metrics
+    assert actual.quant.score == expected.quant.score
+    assert actual.quant.grade == expected.quant.grade
+    assert actual.current_trend.signals == expected.current_trend.signals
+    assert actual.valuation.output == expected.valuation.output
+    assert actual.investment_grade.final_grade == expected.investment_grade.final_grade
+    assert actual.investment_grade.adjustments == expected.investment_grade.adjustments
+
+
+def test_breaker_still_x_with_absent_valuation(onboarding_db):
+    session, _ = onboarding_db
+    request = onboarding_input().model_copy(update={"valuation": None, "thesis_breaker_triggered": True})
+    assert StockOnboardingService(session).analyze(request).investment_grade.value == "X"
+
+
+def test_later_retrieval_is_not_lookahead(onboarding_db):
+    session, _ = onboarding_db
+    request = onboarding_input()
+    sources = tuple(s.model_copy(update={"retrieved_at": request.as_of + timedelta(days=3)}) for s in request.sources)
+    result = StockOnboardingService(session).analyze(request.model_copy(update={"sources": sources}))
+    assert result.analysis_status == "COMPLETE"
+
+
+def test_old_price_with_later_information_rejected():
+    request = onboarding_input()
+    payload = request.model_dump()
+    payload["price"]["timestamp"] = request.as_of - timedelta(days=40)
+    payload["price_session_date"] = (request.as_of - timedelta(days=40)).date()
+    with pytest.raises(ValueError, match="price precedes"):
+        OnboardingInput.model_validate(payload)
+
+
+def test_validation_assumptions_cannot_be_marked_approved():
+    with pytest.raises(ValueError, match="promoted"):
+        OnboardingInput.model_validate({**onboarding_input().model_dump(), "usage": "APPROVED"})
+
+
+def test_failure_rolls_back_all_new_identity_writes(onboarding_db):
+    session, _ = onboarding_db
+    from engine.persistence.repositories import IdentityRepository
+    request = onboarding_input()
+    conflict = request.instrument.model_copy(update={"instrument_id": "occupied-id"})
+    ids = IdentityRepository(session)
+    ids.add_company(request.company)
+    ids.add_instrument(conflict)
+    other_company = request.company.model_copy(update={"company_id": "new-company"})
+    other_instrument = request.instrument.model_copy(update={"company_id": "new-company"})
+    # Same exchange/ticker under a new identity conflicts at DB UNIQUE constraint.
+    from sqlalchemy.exc import IntegrityError
+    with pytest.raises(IntegrityError):
+        StockOnboardingService(session).analyze(request.model_copy(update={"company": other_company,
+            "instrument": other_instrument, "price": None, "price_session_date": None, "price_instrument_id": None}))
+    assert ids.get_company("new-company") is None
+    assert session.scalar(select(func.count()).select_from(AnalysisSnapshotRow)) == 0
+
+
+def test_registered_thesis_kpi_reference_and_missing_reference(onboarding_db):
+    from engine.persistence.repositories import IdentityRepository, ThesisRepository
+    from engine.tracking_models import ThesisDefinition, TrackingKPIDefinition
+    session, _ = onboarding_db
+    request = onboarding_input()
+    from engine.stock_onboarding import TrackingReferences
+    refs = TrackingReferences(thesis_id="registered-thesis", thesis_version=1, kpi_definition_ids=("registered-kpi",))
+    with pytest.raises(ValueError, match="existing comparable thesis"):
+        StockOnboardingService(session).analyze(request.model_copy(update={"tracking": refs}))
+    ids = IdentityRepository(session)
+    ids.add_company(request.company)
+    ids.add_instrument(request.instrument)
+    repo = ThesisRepository(session)
+    thesis = ThesisDefinition(thesis_id=refs.thesis_id, ticker=request.instrument.ticker, version=1,
+        case=request.narrative.case, title="Test reference only", thesis="Explicit test definition",
+        failure_mode="Explicit test condition", kpi_set_version=1, kpi_definition_ids=("registered-kpi",),
+        effective_from=request.as_of)
+    repo.add_thesis_definition(thesis, instrument_id=request.instrument.instrument_id, created_at=request.created_at)
+    repo.add_kpi_definition(TrackingKPIDefinition(kpi_definition_id="registered-kpi", ticker=request.instrument.ticker,
+        kpi_key="test", thesis_id=thesis.thesis_id, thesis_version=1, kpi_set_version=1,
+        name="Test-only definition", unit="count", direction="higher_is_better", source_requirement="official",
+        confirming_condition="explicit", weakening_condition="explicit"), instrument_id=request.instrument.instrument_id)
+    result = StockOnboardingService(session).analyze(request.model_copy(update={"tracking": refs}))
+    assert result.tracking_kpi_status == "REGISTERED"
+
+
+def test_price_identity_cannot_be_reused_for_same_ticker_other_instrument(onboarding_db):
+    session, _ = onboarding_db
+    request = onboarding_input().model_copy(update={"valuation": None})
+    service = StockOnboardingService(session)
+    service.analyze(request)
+    other = request.instrument.model_copy(update={"instrument_id": "same-ticker-other-listing", "exchange": "OTHER"})
+    with pytest.raises(ValueError, match="price_snapshot_id"):
+        service.analyze(request.model_copy(update={"request_id": "other-listing-analysis",
+            "instrument": other, "price_instrument_id": other.instrument_id}))
+    assert session.get(InstrumentRow, other.instrument_id) is None
