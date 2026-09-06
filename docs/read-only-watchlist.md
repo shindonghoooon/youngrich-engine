@@ -49,6 +49,29 @@ The equivalent startup environment variables are
 `YOUNGRICH_WATCHLIST_DB_PATH` and `YOUNGRICH_WATCHLIST_ARTIFACT_PATH`. The view never reads
 `TIINGO_API_TOKEN` and does not need a network connection.
 
+### Existing live-validation pair
+
+The ignored files from the bounded 2026-09-04 Tiingo validation are a separate,
+corresponding pair:
+
+- SQLite: `data/local/limited-operating-live-2026-09-04.sqlite`
+- evaluations: `data/local/limited-operating-live-2026-09-04.jsonl`
+
+From the repository root, inspect that existing pair without seeding, refreshing, or
+revaluing:
+
+```text
+.\.venv\Scripts\python.exe -m streamlit run app/read_only_watchlist.py --server.address 127.0.0.1 -- --db "data/local/limited-operating-live-2026-09-04.sqlite" --artifacts "data/local/limited-operating-live-2026-09-04.jsonl"
+```
+
+Local screen verification on 2026-09-06 matched the stored evaluations: STRL 486.49 USD
+and `U`, TEM 64.62 USD and `B`, and LPTH 9.67 USD and `U`, all on 2026-09-04 with RAW
+Tiingo prices and IG policy v1.1. The screen displayed `U` as `판단 보류`, retained the
+stored reasons and assumption states, and showed that no ticker had an earlier evaluation
+in this artifact. SHA-256 checks of both ignored source files were identical before and
+after the reload control. Desktop and 390 px browser QA passed; this was a local browser
+viewport check, not remote-phone access. No provider call was made.
+
 ## Run locally
 
 ```text
@@ -107,6 +130,8 @@ Local validation on 2026-09-06:
 - full offline suite: 468 passed
 - desktop browser: summary, TEM detail/comparison, and reload PASS
 - 390 x 844 browser viewport: vertical card layout and zero horizontal overflow PASS
+- existing live-validation files: stored STRL/TEM/LPTH values, detail, and reload PASS;
+  source hashes unchanged
 - external provider/write/revalue/seed boundary: guarded by regression tests; PASS
 
 M12-B1 remains `BLOCKED`. Production EOD ingestion, an API, remote/mobile hosting, alerts,

@@ -194,5 +194,10 @@ changes, a new Case, or a large systematic backtest. M12-B1 remains blocked.
 Local verification on 2026-09-06 passed 17 dedicated watchlist tests, 7 documentation
 consistency tests, and the full 468-test offline suite. Desktop QA covered summary,
 selection, existing comparison, and reload. A 390 x 844 viewport stacked the cards without
-horizontal overflow. The feature remains local `DEMO/VALIDATION`; remote CI and Draft PR
-review are the remaining checkpoint gates.
+horizontal overflow. The corresponding ignored 2026-09-04 live-validation SQLite and
+JSONL pair was then opened through the same read-only screen: STRL 486.49 USD / `U`, TEM
+64.62 USD / `B`, and LPTH 9.67 USD / `U` matched the stored evaluations, and both source
+hashes remained unchanged after reload. See the exact reusable command in
+[read-only-watchlist.md](read-only-watchlist.md). This was local desktop and 390 px browser
+QA, not remote-phone access, and made no provider call. The feature remains local
+`DEMO/VALIDATION`; final PR review and protected merge are the remaining checkpoint gates.
