@@ -9,11 +9,30 @@ import subprocess
 import sys
 from datetime import date, datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from app.read_only_watchlist import ARTIFACT_ENV, DB_ENV, _reason_label, _status_labels
+from app.read_only_watchlist import (
+    ACCESSIBLE_COLOR_PAIRS,
+    APP_CSS,
+    ARTIFACT_ENV,
+    DB_ENV,
+    _case_label,
+    _decision_trace,
+    _direction_label,
+    _metric_label,
+    _metric_rows,
+    _metric_status,
+    _metric_value,
+    _reason_detail,
+    _reason_label,
+    _reason_requirement,
+    _reason_sentence,
+    _status_labels,
+    _summary_card_html,
+)
 from engine.limited_operating import (
     LimitedOperatingService,
     exact_us_close_snapshot,
@@ -28,7 +47,14 @@ from engine.read_only_watchlist import (
     load_watchlist,
 )
 from engine.research_data.tiingo import TiingoClient
-from engine.tracking_models import InvestmentGrade, InvestmentGradePolicyVersion
+from engine.tracking_models import (
+    InvestmentGrade,
+    InvestmentGradePolicyVersion,
+    InvestmentGradeAdjustment,
+    InvestmentGradeTrigger,
+    AdjustmentType,
+    ResolutionState,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -99,6 +125,27 @@ def _digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _relative_luminance(hex_color: str) -> float:
+    channels = [
+        int(hex_color[index : index + 2], 16) / 255
+        for index in (1, 3, 5)
+    ]
+    linear = [
+        channel / 12.92
+        if channel <= 0.04045
+        else ((channel + 0.055) / 1.055) ** 2.4
+        for channel in channels
+    ]
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+
+def _contrast_ratio(foreground: str, background: str) -> float:
+    first = _relative_luminance(foreground)
+    second = _relative_luminance(background)
+    lighter, darker = max(first, second), min(first, second)
+    return (lighter + 0.05) / (darker + 0.05)
+
+
 def _app_text(app: AppTest) -> str:
     values: list[str] = []
     for kind in (
@@ -111,6 +158,7 @@ def _app_text(app: AppTest) -> str:
         "info",
         "warning",
         "error",
+        "success",
         "metric",
     ):
         for node in getattr(app, kind):
@@ -168,14 +216,16 @@ def test_app_loads_without_token_and_shows_stored_three_ticker_bundle(
     text = _app_text(app)
 
     assert "예시 데이터" in text
+    assert "검증 데이터" in text
     assert "검증용 가정" in text
+    assert "아직 승인 전인 가치평가 입력" in text
     assert all(ticker in text for ticker in ("STRL", "TEM", "LPTH"))
     assert "123.45 USD" in text
     assert "51.25 USD" in text
     assert "7.89 USD" in text
-    assert "평가에 사용한 종가" in text
+    assert "평가에 사용한 가격" in text
     assert "investment-grade-v1.1-safety" in text
-    assert "저장 결과 다시 읽기" in [button.label for button in app.button]
+    assert "저장본 다시 불러오기" in [button.label for button in app.button]
     assert "투자등급" in text
     assert "기업등급" in text
     assert "투자등급: 이 평가에 사용한 가격에서의 투자 매력" in text
@@ -187,12 +237,113 @@ def test_app_loads_without_token_and_shows_stored_three_ticker_bundle(
     assert "투자 책임" not in text
     assert "참고용" not in text
 
+    assert "가치평가 가정이 없습니다." in text
     metrics = [(metric.label, metric.value) for metric in app.metric]
     assert metrics[:3] == [
-        ("평가에 사용한 종가", "123.45 USD"),
-        ("투자등급", "판단 보류"),
         ("기업등급", "A"),
+        ("기업점수", "3.65"),
+        ("계산 상태", "계산 완료"),
     ]
+
+
+def test_internal_metric_codes_are_presented_as_readable_korean_values():
+    growth = SimpleNamespace(name="revenue_growth", value=0.0628327228, unit="ratio")
+    runway = SimpleNamespace(name="runway", value=6.1003034, unit="months")
+    burn = SimpleNamespace(
+        name="cash_burn_trend",
+        value=4.7731837,
+        unit="burn_change_ratio_or_transition",
+    )
+
+    assert _metric_label(growth.name) == "매출 성장률"
+    assert _metric_value(growth) == "+6.3%"
+    assert _metric_value(runway) == "6.1개월"
+    assert _metric_value(burn) == "4.77배"
+
+
+def test_formatter_registry_preserves_semantics_zero_and_none():
+    margin = SimpleNamespace(name="margin_trend", value=1.25, unit="pct_point")
+    gross_margin = SimpleNamespace(
+        name="gross_margin_trend", value=0.0024, unit="pct_point"
+    )
+    zero_growth = SimpleNamespace(name="revenue_growth", value=0.0, unit="ratio")
+    unknown_ratio = SimpleNamespace(name="custom_ratio", value=0.5, unit="ratio")
+    transition = SimpleNamespace(
+        name="cash_burn_trend",
+        value="positive_to_burning",
+        unit="burn_change_ratio_or_transition",
+    )
+    missing = SimpleNamespace(name="runway", value=None, unit="months")
+
+    assert _metric_value(margin) == "+1.25%p"
+    assert _metric_value(gross_margin) == "+0.24%p"
+    assert _metric_value(zero_growth) == "+0.0%"
+    assert _metric_value(unknown_ratio) == "0.5"
+    assert _metric_value(transition) == "잉여현금흐름 흑자에서 현금 소진으로 전환"
+    assert _metric_value(missing) == "자료 부족"
+
+
+def test_core_supporting_unresolved_and_not_applicable_are_distinct():
+    supporting = SimpleNamespace(
+        name="gross_margin_trend",
+        value=0.01,
+        unit="pct_point",
+        grade=None,
+        state=ResolutionState.RESOLVED,
+        is_core=False,
+    )
+    unresolved_core = SimpleNamespace(
+        name="revenue_growth",
+        value=None,
+        unit=None,
+        grade=None,
+        state=ResolutionState.UNRESOLVED,
+        is_core=True,
+    )
+    not_applicable = SimpleNamespace(
+        name="potential_dilution",
+        value="not_applicable",
+        unit=None,
+        grade=None,
+        state=ResolutionState.RESOLVED,
+        is_core=False,
+    )
+
+    assert _metric_status(supporting) == "참고 지표 · 등급 미부여"
+    assert _metric_status(unresolved_core) == "자료 부족"
+    assert _metric_status(not_applicable) == "적용 대상 아님"
+    rows = _metric_rows(
+        (supporting,),
+        period_label="종료 2026-06-30",
+        include_grade=False,
+    )
+    assert rows == [
+        {
+            "지표": "매출총이익률 변화",
+            "값": "+1.00%p",
+            "상태": "참고 지표 · 등급 미부여",
+            "평가기간": "종료 2026-06-30",
+        }
+    ]
+
+
+def test_display_formatting_never_mutates_raw_metric_value():
+    metric = SimpleNamespace(name="revenue_growth", value=0.0628327228, unit="ratio")
+    original = metric.value
+
+    assert _metric_value(metric) == "+6.3%"
+    assert metric.value == original
+
+
+def test_user_labels_keep_case_grade_and_trend_as_separate_axes():
+    assert _case_label("case1_profitable_growth") == "Case 1 · 흑자 성장"
+    assert (
+        _case_label("case2_emerging_asymmetric_growth")
+        == "Case 2 · 비대칭 성장"
+    )
+    assert _direction_label("positive") == "개선"
+    assert _direction_label("neutral") == "보합"
+    assert _direction_label("negative") == "악화"
 
 
 def test_valid_u_is_not_presented_as_a_data_error(stored_watchlist, monkeypatch):
@@ -212,8 +363,55 @@ def test_valid_u_is_not_presented_as_a_data_error(stored_watchlist, monkeypatch)
     assert "VALUATION_ASSUMPTIONS_UNAVAILABLE" in text
     assert "가치평가 가정 없음" in text
     assert "판단 보류" in text
-    assert "파생 투자등급 기술 코드: U" in text
+    assert "파생 투자등급 기술 코드" in text
     assert "저장 데이터 오류" not in text
+
+
+def test_strl_and_lpth_unresolved_reasons_are_plain_and_not_invented(
+    stored_watchlist, monkeypatch
+):
+    db_path, artifacts = stored_watchlist
+    snapshot = load_watchlist(db_path, artifacts)
+    strl = snapshot.item_for("STRL")
+    lpth = snapshot.item_for("LPTH")
+
+    assert _reason_sentence("VALUATION_ASSUMPTIONS_UNAVAILABLE") == (
+        "가치평가 가정이 없습니다."
+    )
+    assert _reason_requirement("VALUATION_ASSUMPTIONS_UNAVAILABLE") == (
+        "가치평가 가정"
+    )
+    assert _reason_sentence("VALUATION_COMBINATION_UNRESOLVED") == (
+        "현재 가치평가 결과 조합에 승인된 투자등급 규칙이 없습니다."
+    )
+    assert _reason_detail("VALUATION_COMBINATION_UNRESOLVED") == (
+        "저장된 세부 원인 정보 없음"
+    )
+    assert "가치평가 가정 없음" in _summary_card_html(strl)
+    assert "가치평가 조합의 등급 기준 미정의" in _summary_card_html(lpth)
+
+    app = _run_app(monkeypatch, db_path, artifacts)
+    app.selectbox[0].select("LPTH").run()
+    text = _app_text(app)
+    assert "상세 원인" in text
+    assert "저장된 세부 원인 정보 없음" in text
+    assert "자금 부족" not in text
+    assert "고객 부족" not in text
+
+
+def test_summary_card_keeps_human_date_and_hides_diagnostic_identifiers(
+    stored_watchlist,
+):
+    db_path, artifacts = stored_watchlist
+    item = load_watchlist(db_path, artifacts).item_for("STRL")
+    html = _summary_card_html(item)
+
+    assert "2026-09-04 종가" in html
+    assert "Case 1 · 흑자 성장" in html
+    assert "판단 보류" in html
+    assert "investment-grade-v1.1-safety" not in html
+    assert item.evaluation.evaluation_id not in html
+    assert item.evaluation.assessment_as_of.isoformat() not in html
 
 
 def test_display_state_comes_from_data_and_assumption_provenance(stored_watchlist):
@@ -222,8 +420,12 @@ def test_display_state_comes_from_data_and_assumption_provenance(stored_watchlis
     strl = snapshot.item_for("STRL")
     tem = snapshot.item_for("TEM")
 
-    assert _status_labels(strl) == ("예시 데이터",)
-    assert _status_labels(tem) == ("예시 데이터", "검증용 가정")
+    assert _status_labels(strl) == ("예시 데이터", "검증 데이터")
+    assert _status_labels(tem) == (
+        "예시 데이터",
+        "검증 데이터",
+        "검증용 가정",
+    )
 
     stored_strl = strl.model_copy(
         update={"price_snapshot": strl.price_snapshot.model_copy(update={"source": "TIINGO"})}
@@ -232,7 +434,10 @@ def test_display_state_comes_from_data_and_assumption_provenance(stored_watchlis
         update={"price_snapshot": tem.price_snapshot.model_copy(update={"source": "TIINGO"})}
     )
     assert _status_labels(stored_strl) == ("검증 데이터",)
-    assert _status_labels(stored_tem) == ("검증용 가정",)
+    assert _status_labels(stored_tem) == (
+        "검증 데이터",
+        "검증용 가정",
+    )
 
 
 def test_missing_current_and_narrative_preserve_unknown(stored_watchlist, monkeypatch):
@@ -240,9 +445,10 @@ def test_missing_current_and_narrative_preserve_unknown(stored_watchlist, monkey
     app = _run_app(monkeypatch, db_path, artifacts)
     text = _app_text(app)
 
-    assert "Current Trend: 미제공 / 미해결" in text
-    assert "Funding Stress, Commercial Inflection, Commercial Deterioration = UNKNOWN" in text
-    assert "Narrative: 미제공 / 미해결" in text
+    assert "저장된 최근 비교 자료가 없어 추세를 확인할 수 없습니다." in text
+    assert "비교기간 정보 없음" in text
+    assert "자금 부담 · 상업화 전환 · 사업 악화 상태: 미확인" in text
+    assert "사업 근거: 저장된 평가 자료가 없습니다." in text
 
 
 def test_source_v1_and_derived_v1_1_are_distinguished(stored_watchlist, monkeypatch):
@@ -256,9 +462,28 @@ def test_source_v1_and_derived_v1_1_are_distinguished(stored_watchlist, monkeypa
     assert "투자등급" in text
     assert "기업등급" in text
     assert "investment-grade-v1.1-safety" in text
-    assert "원본 분석을 수정한 새 분석이 아니라" in text
-    assert "valuation_confidence" in text
+    assert "저장된 원본 분석과 가정은 그대로 두고" in text
+    assert "가치평가 신뢰도" in text
     assert "상한 B" in text
+
+
+def test_quant_grade_x_and_current_positive_are_preserved_as_distinct_axes(
+    stored_watchlist, monkeypatch
+):
+    db_path, artifacts = stored_watchlist
+    stored = load_watchlist(db_path, artifacts).item_for("LPTH")
+    assert stored.reference_analysis.quant.grade.value == "X"
+    assert stored.reference_analysis.current_trend.overall.value == "positive"
+
+    app = _run_app(monkeypatch, db_path, artifacts)
+    app.selectbox[0].select("LPTH").run()
+    text = _app_text(app)
+
+    assert "기업등급" in text
+    assert "X" in text
+    assert "종합 추세: 개선" in text
+    assert "최근 실적 추세는 기업등급과 별도의 최근 변화 지표입니다." in text
+    assert "비교기간 정보 없음" in text
 
 
 def test_unknown_reason_keeps_original_code_visible(stored_watchlist, monkeypatch):
@@ -316,6 +541,8 @@ def test_reload_observes_append_without_mutating_sources(stored_watchlist, monke
     app.selectbox[0].select("LPTH").run()
     app.button[0].click().run()
     assert not app.exception
+    assert "저장본을 다시 불러왔습니다." in _app_text(app)
+    assert app.selectbox[0].value == "LPTH"
     assert _digest(db_path) == before_db
     assert _digest(artifacts) == before_artifacts
 
@@ -323,6 +550,36 @@ def test_reload_observes_append_without_mutating_sources(stored_watchlist, monke
     app.button[0].click().run()
     assert not app.exception
     assert "130.00 USD" in _app_text(app)
+
+
+def test_render_and_reload_preserve_stored_snapshot_and_evaluation_models(
+    stored_watchlist, monkeypatch
+):
+    db_path, artifacts = stored_watchlist
+    before = load_watchlist(db_path, artifacts)
+    before_models = [
+        (
+            item.reference_analysis.model_dump(mode="json"),
+            item.evaluation.model_dump(mode="json"),
+        )
+        for item in before.items
+        if item.reference_analysis is not None and item.evaluation is not None
+    ]
+
+    app = _run_app(monkeypatch, db_path, artifacts)
+    app.selectbox[0].select("TEM").run()
+    app.button[0].click().run()
+
+    after = load_watchlist(db_path, artifacts)
+    after_models = [
+        (
+            item.reference_analysis.model_dump(mode="json"),
+            item.evaluation.model_dump(mode="json"),
+        )
+        for item in after.items
+        if item.reference_analysis is not None and item.evaluation is not None
+    ]
+    assert after_models == before_models
 
 
 def test_corrupt_jsonl_is_explicit_and_never_falls_back_to_old_record(
@@ -427,3 +684,115 @@ def test_invalid_paths_are_not_exposed_as_investment_u(tmp_path: Path):
 def test_streamlit_usage_telemetry_is_disabled():
     config = (ROOT / ".streamlit" / "config.toml").read_text(encoding="utf-8")
     assert "gatherUsageStats = false" in config
+
+
+def test_ready_cards_project_initial_and_final_without_mutating_storage(stored_watchlist):
+    db, artifacts = stored_watchlist
+    snapshot = load_watchlist(db, artifacts)
+    before = snapshot.model_dump_json()
+    hashes = (_digest(db), _digest(artifacts))
+    for item in snapshot.items:
+        card = _summary_card_html(item)
+        trace = _decision_trace(item)
+        assert card.index("투자등급") < card.index("판단 근거")
+        assert "가치평가 초기 판단" in card and "최종 투자등급" in card
+        assert trace[0].display_value == (
+            "판단 보류" if item.evaluation.investment_grade_result.initial_valuation_grade == InvestmentGrade.U
+            else item.evaluation.investment_grade_result.initial_valuation_grade.value
+        )
+        for code in item.evaluation.unresolved_reasons:
+            assert code not in card
+    assert snapshot.model_dump_json() == before
+    assert hashes == (_digest(db), _digest(artifacts))
+
+
+def test_trace_distinguishes_missing_assumptions_from_undefined_policy(stored_watchlist):
+    snapshot = load_watchlist(*stored_watchlist)
+    strl, tem, lpth = (snapshot.item_for(t) for t in ("STRL", "TEM", "LPTH"))
+    strl_trace = _decision_trace(strl)
+    assert strl_trace[1].display_value == "완료 · 기업등급 A"
+    assert strl_trace[1].impact == "NOT_RECORDED"
+    assert strl_trace[0].explanation == "가치평가 미산출"
+    tem_trace = _decision_trace(tem)
+    assert tem_trace[0].display_value == tem_trace[-1].display_value == "B"
+    confidence = next(s for s in tem_trace if s.label == "가치평가 신뢰도")
+    assert confidence.impact == "CAP"
+    assert confidence.source_code == ("Valuation Confidence cap",)
+    lpth_trace = _decision_trace(lpth)
+    assert lpth_trace[0].explanation == "가치평가 계산 완료"
+    assert "등급 기준 미정의" in lpth_trace[-1].explanation
+    assert "자료 부족" not in lpth_trace[-1].explanation
+
+
+def test_app_renders_recorded_cap_order_without_recomputing_intermediate_grades(
+    stored_watchlist, monkeypatch
+):
+    # Synthetic presentation-only A -> C record; never edits the stored fixtures.
+    import engine.read_only_watchlist as loader
+    snapshot = load_watchlist(*stored_watchlist)
+    item = snapshot.item_for("TEM")
+    adjustments = (
+        InvestmentGradeAdjustment(
+            sequence=1, adjustment_type=AdjustmentType.CAP,
+            trigger=InvestmentGradeTrigger.QUANT, active=True,
+            maximum_grade=InvestmentGrade.B, reason="Case 2 Quant cap",
+        ),
+        InvestmentGradeAdjustment(
+            sequence=2, adjustment_type=AdjustmentType.CAP,
+            trigger=InvestmentGradeTrigger.CURRENT_TREND, active=True,
+            maximum_grade=InvestmentGrade.C, reason="Current Trend cap",
+        ),
+    )
+    grade = item.evaluation.investment_grade_result.model_copy(update={
+        "initial_valuation_grade": InvestmentGrade.A,
+        "final_grade": InvestmentGrade.C, "adjustments": adjustments,
+    })
+    changed = item.model_copy(update={"evaluation": item.evaluation.model_copy(
+        update={"investment_grade_result": grade}
+    )})
+    projected = snapshot.model_copy(update={
+        "items": tuple(changed if i.ticker == "TEM" else i for i in snapshot.items)
+    })
+    monkeypatch.setattr(loader, "load_watchlist", lambda *_args: projected)
+    app = _run_app(monkeypatch, *stored_watchlist)
+    app.selectbox[0].select("TEM").run()
+    text = _app_text(app)
+    assert "가치평가 초기 판단: A" in text
+    assert "최종 투자등급: C" in text
+    assert text.index("↓ 1. 기업등급") < text.index("↓ 2. 최근 실적 추세")
+    assert grade.adjustments == adjustments
+    assert _decision_trace(changed)[0].display_value == "A"
+    assert _decision_trace(changed)[-1].display_value == "C"
+
+
+def test_same_grade_trace_and_unknown_funding_do_not_imply_pass(
+    stored_watchlist, monkeypatch
+):
+    app = _run_app(monkeypatch, *stored_watchlist)
+    app.selectbox[0].select("TEM").run()
+    text = _app_text(app)
+    assert "가치평가 초기 판단: B" in text and "최종 투자등급: B" in text
+    assert "초기 판단과 최종 판단이 같습니다." in text
+    assert "추가 판정 제한 기록 없음" in text
+    strl = load_watchlist(*stored_watchlist).item_for("STRL")
+    funding = next(s for s in _decision_trace(strl) if s.label == "자금 부담")
+    assert funding.display_value == "미확인"
+    assert funding.impact == "UNRESOLVED"
+
+
+def test_responsive_grid_contract_covers_required_viewports():
+    assert "grid-template-columns: repeat(3, minmax(0, 1fr))" in APP_CSS
+    assert "@media (max-width: 1199px)" in APP_CSS
+    assert "grid-template-columns: repeat(2, minmax(0, 1fr))" in APP_CSS
+    assert "@media (max-width: 767px)" in APP_CSS
+    assert ".yr-card-grid, .yr-judgement-grid" in APP_CSS
+    assert "grid-template-columns: minmax(0, 1fr)" in APP_CSS
+    assert "overflow-wrap: anywhere" in APP_CSS
+    assert "white-space: normal" in APP_CSS
+
+
+def test_declared_ui_color_pairs_meet_wcag_normal_text_contrast():
+    for foreground, background in ACCESSIBLE_COLOR_PAIRS:
+        assert foreground in APP_CSS
+        assert background in APP_CSS
+        assert _contrast_ratio(foreground, background) >= 4.5
