@@ -2,7 +2,7 @@
 
 Status: ACTIVE PROJECT INDEX
 
-Last Updated: 2026-09-05
+Last Updated: 2026-09-06
 
 ## Mission
 
@@ -87,6 +87,13 @@ EOD Market Data → API → Dashboard → PWA / Alerts
 No production provider or product technology has been selected. Tiingo is approved only
 for the bounded research and limited operating pilot described above.
 
+The parallel product track is now implementing a bounded
+[STRL/TEM/LPTH operating connection](docs/limited-operating-flow.md) on branch
+`feat/limited-operating-flow`. It is `DEMO/VALIDATION`, does not unblock M12-B1, and does
+not authorize a production feed or UI. Its independent-audit response adds input and
+comparison safety contracts without changing frozen weights, thresholds, or grades; see
+the [audit validation record](docs/validation/limited-operating-independent-audit-2026-09-06.md).
+
 ## Frozen Components
 
 These documents marked `FROZEN` are authoritative for production behavior:
@@ -100,7 +107,7 @@ These documents marked `FROZEN` are authoritative for production behavior:
 - [Investment Grade v1](docs/specs/investment-grade-v1.md)
 - [Investment Grade v1.1 Decision Safety](docs/specs/investment-grade-v1.1.md) —
   default for explicitly selected new decision snapshots; v1 remains replayable
-- [Tracking Schema v0.1](docs/specs/tracking-schema-v1.md)
+- [Tracking Schema v0.2](docs/specs/tracking-schema-v1.md)
 - [Tracking Engine v1](docs/specs/tracking-engine-v1.md)
 - [Persistence Phase 1](docs/specs/persistence-v1.md)
 - [Performance Engine Phase 1](docs/specs/performance-engine-v1.md)
@@ -136,6 +143,7 @@ and historical discussion. Changes require an explicit design decision and versi
 - [Investment Grade Decision Safety v1.1](docs/validation/decision-safety-v1.1.md): PASS
 - [Tiingo Data Pilot v0.1](docs/validation/m12-b0.1-tiingo-data-pilot-v0.1.md): PASS WITH GAPS
 - Calculation, Tracking, Persistence, and Performance regression: PASS
+- Limited operating independent audit follow-up: LOCAL/REMOTE CI PASS / LIVE EXACT-SESSION PASS
 - [Historical Stress Calibration v0.1](docs/validation/historical-performance-stress-calibration-v0.1.md): COMPLETE, outcome-aware only
 - Systematic unbiased backtest: NOT YET COMPLETE
 
@@ -150,7 +158,8 @@ Frozen code/spec output overrides earlier manual-memory estimates:
 - ONDS Investment Grade = **C**
 - EROC Current Trend = **NEUTRAL**
 
-These are correction records, not new rules.
+These are v1 validation-fixture correction records, not v1.1 outputs, current company
+grades, recommendations, or new rules.
 
 ## Open Decisions
 
@@ -174,6 +183,7 @@ the same historical validation protocol.
 ## Documentation Map
 
 - [Developer handoff](docs/DEVELOPER_HANDOFF.md) — current checkpoint and next execution point
+- [Limited operating flow](docs/limited-operating-flow.md) — STRL/TEM/LPTH DEMO/VALIDATION CLI
 - [Roadmap](docs/roadmap.md) — milestone status, next work, and open decision gates
 - [Architecture](docs/architecture.md) — stable system boundaries and data flow
 - [Frozen specifications](docs/specs/) — authoritative rules and contracts

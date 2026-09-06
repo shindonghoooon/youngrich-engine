@@ -27,7 +27,7 @@ validation, ADRs, and dated reports cannot override these documents.
 
 ## Tracking, persistence, and performance
 
-- [Tracking Schema v0.1](tracking-schema-v1.md)
+- [Tracking Schema v0.2](tracking-schema-v1.md)
 - [Tracking Engine v1](tracking-engine-v1.md)
 - [Persistence Phase 1](persistence-v1.md)
 - [Performance Engine Phase 1](performance-engine-v1.md)

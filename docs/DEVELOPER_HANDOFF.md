@@ -1,8 +1,8 @@
 # Developer Handoff
 
-Last Updated: 2026-09-05
+Last Updated: 2026-09-06
 
-Status: INTEGRATION CHECKPOINT
+Status: LIMITED OPERATING FLOW — IMPLEMENTATION REVIEW
 
 This file is a short execution handoff. Frozen specifications and executable tests remain
 authoritative; validation fixtures are not current investment recommendations.
@@ -10,6 +10,8 @@ authoritative; validation fixtures are not current investment recommendations.
 ## Repository State
 
 - Repository: `D:\youngrich-engine\youngrich-engine`
+- Current feature branch: `feat/limited-operating-flow`
+- Feature base: `82af10f1365bf313d211853f135d85fe5d05f29e`
 - B0/Tiingo branch: `main`
 - B0/Tiingo checkpoint: `858ca72176c013113b1e0c9d37d46dee6f8b2fbc`
 - Safety worktree: `D:\youngrich-engine\youngrich-engine-decision-safety-v1_1`
@@ -53,7 +55,7 @@ Read:
 - `docs/validation/m12-b0-free-data-pilot-v0.1.md`
 
 Authentication is read only from the `TIINGO_API_TOKEN` operating-system environment
-variable. The token is not present in the current integration shell. Its value must never
+variable. The token is not present in the current developer shell. Its value must never
 be printed or committed. The code does not automatically load `.env` files.
 
 Provider responses and pilot summaries are cached under ignored
@@ -90,9 +92,61 @@ The integrated worktree passed the following checks on 2026-09-05:
 - Unstaged and staged diff checks: PASS
 - Secret literal and local raw-cache staging checks: PASS
 
+The limited operating feature branch passed the following checks on 2026-09-06:
+
+- Full suite: 393 passed
+- Limited operating flow: 14 passed
+- Documentation consistency: 7 passed
+- Exact-session CLI smoke for 2026-09-04: STRL, TEM, and LPTH all returned
+  `PENDING_CREDENTIAL` without creating a price or evaluation
+- Tiingo credential detected: NO
+- Unstaged diff and untracked-file whitespace checks: PASS
+- Secret literal and ignored local-artifact checks: PASS
+
+The independent audit response subsequently passed locally on 2026-09-06:
+
+- Full suite: 428 passed
+- New audit reproduction/integration tests: 31 passed
+- Actual builder → SQLite store → new-session restore → comparison: PASS for price,
+  fundamentals, shares, assumptions, policy, mixed, and missing-fingerprint cases
+- Existing Case 2 Golden and frozen-policy regressions: PASS
+- Tiingo live state: `PENDING_CREDENTIAL`
+- Remote `Offline validation` CI: PASS on audit commit `dcd9090`
+- Main branch-protection settings: unverified; unauthenticated API returned 401
+
+The final audit follow-up passed locally and on the feature branch:
+
+- Full suite: 451 passed
+- GitHub Actions `Offline validation`: PASS on `225c5a7`, run `33980146724`
+- Direct IG v1.1 validates the exact Case/version/Core 8 or Core 6 contract; genuine
+  omissions become structured `U`, while reweighting, supporting disguise, fake Core,
+  Case/version mismatch, and contradictory state are rejected
+- The approved Case 2 shareholder-comparability provisional contract remains valid
+- Valuation publication time is preserved and revalidated at build, JSON restore,
+  Analysis assembly, persistence mapping/restore, and new IG v1.1 evaluation
+- `retrieved_at` is provenance, not publication time; late retrieval of already-public
+  evidence remains valid
+- Tracking Schema v0.2 and the Valuation evidence contract are backward-readable; no
+  migration was added, while legacy evidence gaps force new decisions to `U`
+- Live STRL/TEM/LPTH exact-session verification: PASS for 2026-09-04 using Tiingo RAW
+  closes; stored prices were STRL 486.49 USD, TEM 64.62 USD, and LPTH 9.67 USD
+- Derived IG v1.1 results: STRL `U` (`VALUATION_ASSUMPTIONS_UNAVAILABLE`), TEM `B`
+  (Valuation Confidence cap retained), and LPTH `U`
+  (`VALUATION_COMBINATION_UNRESOLVED`)
+- Separate-process `show` reload: PASS for all three tickers; immutable reference analyses
+  and assumption versions were preserved and derived evaluations remained append-only
+- Authenticated owner review confirmed that neither a repository ruleset nor classic
+  branch protection is configured for `main`; PR requirement and `Offline validation` as
+  a required check are therefore not currently enforced
+
 ## Next Product Task
 
-Build one limited operating vertical slice for STRL, TEM, and LPTH:
+The limited operating vertical slice for STRL, TEM, and LPTH is implemented and has passed
+the bounded 2026-09-04 Tiingo exact-session verification. Read
+`docs/limited-operating-flow.md` for the execution contract. The committed implementation,
+offline regression evidence, and separately recorded live results are the review evidence.
+
+Implemented flow:
 
 ```text
 existing official fixture / analysis
@@ -110,7 +164,14 @@ valuation/evaluation while preserving the assumption version. Valuation uses the
 with matching share/EPS scope, while performance uses a consistent adjusted price basis and
 version.
 
-Start with the smallest executable connection among existing functions. A minimal mobile
-query view comes only after this path works. Do not add realtime prices, broker integration,
-a new provider, a full historical universe, automatic threshold changes, a new Case, or a
-large systematic backtest in the next task.
+SQLite stores identity, immutable reference analyses, assumptions, and RAW prices. Because
+the frozen schema has no independent price-only evaluation root, derived Valuation/IG and
+comparisons are append-only ignored JSONL artifacts rather than fake AnalysisSnapshots. No
+migration or investment-policy change was made.
+
+Review must confirm the full suite, docs, independent audit, remote CI, and diff checks
+before main merge. After this
+checkpoint is accepted, the next product task is the minimum mobile/read-only view over
+this output contract. Do not add realtime prices, broker integration, a new provider, a
+full historical universe, automatic threshold changes, a new Case, or a large systematic
+backtest.

@@ -21,12 +21,14 @@ from engine.case2_policy import (
 from engine.models import Grade
 from engine.tracking_models import (
     AnalysisCase,
+    BinaryEvidenceState,
     CurrentTrendSignal,
     CurrentTrendSnapshot,
     DirectionState,
     FrozenDomainModel,
     GrowthScope,
     TrendFlag,
+    TrendFlagResult,
 )
 
 
@@ -121,6 +123,38 @@ def build_case2_current_trend(inputs: Case2CurrentInput) -> CurrentTrendSnapshot
         flags.add(TrendFlag.COMMERCIAL_INFLECTION)
     if commercial_deterioration:
         flags.add(TrendFlag.COMMERCIAL_DETERIORATION)
+    flag_results = (
+        TrendFlagResult(
+            flag=TrendFlag.FUNDING_STRESS,
+            state=(
+                BinaryEvidenceState.UNKNOWN
+                if funding_stress is None
+                else BinaryEvidenceState.YES
+                if funding_stress
+                else BinaryEvidenceState.NO
+            ),
+        ),
+        TrendFlagResult(
+            flag=TrendFlag.COMMERCIAL_INFLECTION,
+            state=(
+                BinaryEvidenceState.UNKNOWN
+                if inflection is None
+                else BinaryEvidenceState.YES
+                if inflection
+                else BinaryEvidenceState.NO
+            ),
+        ),
+        TrendFlagResult(
+            flag=TrendFlag.COMMERCIAL_DETERIORATION,
+            state=(
+                BinaryEvidenceState.UNKNOWN
+                if commercial_deterioration is None
+                else BinaryEvidenceState.YES
+                if commercial_deterioration
+                else BinaryEvidenceState.NO
+            ),
+        ),
+    )
 
     signals = (
         CurrentTrendSignal(
@@ -166,6 +200,7 @@ def build_case2_current_trend(inputs: Case2CurrentInput) -> CurrentTrendSnapshot
         signals=signals,
         overall=overall_current_signal(tuple(signal.state for signal in signals)),
         flags=frozenset(flags),
+        flag_results=flag_results,
         growth_scope=inputs.growth_scope,
         annual_quant_grade_reference=inputs.annual_quant_grade,
     )

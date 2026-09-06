@@ -1,12 +1,12 @@
-# Tracking Schema v0.1
+# Tracking Schema v0.2
 
 Status: FROZEN
 
-Version: 0.1
+Version: 0.2
 
 Authoritative: YES
 
-Last Updated: 2026-09-04
+Last Updated: 2026-09-06
 
 Implementation: `engine/tracking_models.py`
 
@@ -18,7 +18,7 @@ Change Policy: changes require an explicit design decision, compatibility review
 
 ## Status and scope
 
-Tracking Schema v0.1 is the immutable, versioned domain contract for tracking,
+Tracking Schema v0.2 is the immutable, versioned domain contract for tracking,
 persistence, reporting, and dashboard work. Tracking Engine v1 Phase 1 now executes
 the price, snapshot-diff, thesis-status, and entry-zone portions of this contract. It
 lives in `engine/tracking_models.py`; executable semantics are documented in
@@ -72,6 +72,10 @@ Supporting contracts include `ValuationAssumptionSet`, `ExitMultipleAssumption`,
 `ValuationOutput`, `RequiredGrowthCase`, `NarrativeGate`, `InvestmentGradeAdjustment`,
 `GradeCap`, and `ExecutablePriceSnapshot`.
 
+Tracking Schema v0.2 adds optional preserved valuation-evidence `available_at` and
+`retrieved_at` fields. Old payloads remain loadable, but missing availability is not
+silently defaulted and cannot support a new resolved IG v1.1 evaluation.
+
 ## Pure calculation modules
 
 - `engine/case2_quant.py`: normalized annual inputs to Case 2 Core 6 `QuantSnapshot`
@@ -89,7 +93,7 @@ These modules fetch no external data and perform no persistence.
 
 ## Immutability and versioning
 
-All v0.1 models use Pydantic `frozen=True` and reject unknown fields. New financials,
+All v0.2 models use Pydantic `frozen=True` and reject unknown fields. New financials,
 prices, narrative evidence, or KPI observations create new snapshots. They never mutate
 an older `AnalysisSnapshot`.
 
@@ -113,6 +117,19 @@ validation. Resolved records must provide a value.
 
 Quant snapshots may also be unresolved. An unresolved Quant snapshot cannot have a
 score or grade.
+
+## Comparison and tri-state contract
+
+Valuation change attribution explicitly distinguishes `PRICE_ONLY`,
+`FUNDAMENTAL_CHANGE`, `ASSUMPTION_CHANGE`, `POLICY_CHANGE`, `MIXED`, and `UNRESOLVED`.
+Missing fingerprints never imply equal fundamentals, and a share-count change is a
+fundamental change even when the quoted price is unchanged.
+
+Current flags use `YES`, `NO`, and `UNKNOWN`. UNKNOWN→YES is evidence resolution, not
+NO→YES; YES→UNKNOWN is evidence loss, not YES→NO. Relational boolean columns retained for
+migration compatibility are only active-YES projections. Query and reporting consumers
+must read the immutable payload for tri-state meaning and must never interpret database
+`false` as confirmed NO.
 
 ## Case support
 
@@ -153,10 +170,10 @@ This schema deliberately contains no weighted-average Investment Grade function.
 ## Compatibility and migration
 
 The current Case 1 pipeline imports `AnalysisSnapshot` and `MetricResult` from
-`engine.models`. Tracking Schema v0.1 uses the same domain names in the separate
+`engine.models`. Tracking Schema v0.2 uses the same domain names in the separate
 `engine.tracking_models` module to avoid breaking that frozen runtime.
 
-There is no automatic conversion or database migration in v0.1. A future migration must:
+There is no automatic conversion or database migration in v0.2. A future migration must:
 
 1. map existing Case 1 snapshots into the versioned temporal fields;
 2. derive `available_at` from stored source metadata rather than `period_end`;

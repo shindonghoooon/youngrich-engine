@@ -74,11 +74,11 @@ def cumulative_cfo_to_net_income_3y(history: FinancialHistory) -> float:
     return sum(period.cfo for period in periods) / net_income
 
 
-def cumulative_capex_to_cfo_3y(history: FinancialHistory) -> float:
+def cumulative_capex_to_cfo_3y(history: FinancialHistory) -> float | None:
     periods = trailing_periods(history, 3)
     cfo = sum(period.cfo for period in periods)
     if cfo <= 0:
-        raise ValueError("cumulative CFO must be positive")
+        return None
     return sum(period.capex for period in periods) / cfo
 
 

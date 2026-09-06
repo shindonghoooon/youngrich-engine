@@ -46,14 +46,16 @@ Current, Narrative, and Valuation snapshots remain intact when final IG is `U`.
 
 Case 1 requires:
 
-- a resolved Quant grade with every Core metric resolved; and
+- a `case1-quant-v1-frozen` Quant matching the requested Case, containing exactly the
+  frozen Core 8 with their frozen weights and resolved grades; and
 - a resolved Valuation with resolved Expectation Gap and confidence.
 
 Case 1 Narrative remains optional. Supporting-metric absence alone does not produce U.
 
 Case 2 requires:
 
-- an eligible resolved Quant grade with all frozen mandatory metrics resolved;
+- a `case2-quant-v1-frozen` Quant matching the requested Case, containing the frozen
+  Core 6 with their frozen weights and all mandatory metrics resolved;
 - a resolved mandatory Narrative Gate; and
 - a resolved Valuation with resolved Expectation Gap and confidence.
 
@@ -61,15 +63,30 @@ The frozen shareholder-comparability exception remains valid: unresolved `diluti
 `revenue_per_share_growth` may retain a resolved provisional Case 2 Quant result. Other
 unresolved Core metrics do not satisfy the mandatory contract.
 
+A genuinely missing required Core metric produces `U` with a structured
+`MANDATORY_QUANT_METRICS_MISSING:<metric...>` reason. Reweighting the remaining metrics,
+relabelling a required metric as supporting, substituting a fake Core metric, using an
+unsupported Quant version, Case mismatch, or a contradictory resolved/unresolved object
+is invalid input and must raise instead of producing A/B/C/D. The same Case-specific
+validators used by the normal builders are reused at the IG v1.1 boundary; no rule is
+copied into the generic Calibration Kernel.
+
 Current Trend remains optional. Missing or unresolved Current does not become neutral and
 does not itself force `U`; it is recorded as `CURRENT_UNRESOLVED_OPTIONAL`.
 
 Mandatory U reasons are:
 
 - `MANDATORY_QUANT_UNRESOLVED`
+- `MANDATORY_QUANT_METRICS_MISSING:<metric...>`
 - `MANDATORY_NARRATIVE_UNRESOLVED`
 - `VALUATION_UNRESOLVED`
+- `VALUATION_EVIDENCE_UNRESOLVED`
 - `VALUATION_COMBINATION_UNRESOLVED`
+
+Exit-multiple and valuation-evidence publication timestamps are revalidated at the direct
+IG v1.1 entry. A legacy valuation without preserved publication time cannot support a new
+resolved decision. Retrieval time may be later than `as_of` and is retained only as
+provenance when the evidence was already public.
 
 ## Confidence monotonicity
 

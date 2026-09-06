@@ -118,6 +118,7 @@ def evidence(
         credible_evidence_count=count,
         company_economics_stable=stable,
         company_economics_rapidly_changing=changing,
+        available_at=AVAILABLE,
     )
 
 
@@ -210,7 +211,9 @@ def test_case2_valuation_terminal_metric_formulas(metric, stage, expected_revenu
             multiples=(4, 5, 6),
         ),
         current_market_cap=500,
+        current_price=5,
         current_revenue=50,
+        current_share_count=100,
         required_return=0.15,
         evidence=evidence(),
         asymmetry_type=AsymmetryType.BALANCED,
@@ -233,7 +236,9 @@ def test_case2_valuation_dilution_and_terminal_debt_raise_required_growth():
     base_kwargs = dict(
         identity=identity(),
         current_market_cap=500,
+        current_price=5,
         current_revenue=50,
+        current_share_count=100,
         required_return=0.15,
         evidence=evidence(),
         asymmetry_type=AsymmetryType.BALANCED,
@@ -290,7 +295,9 @@ def test_price_only_case2_recalculation_preserves_assumption_version():
         identity=identity(),
         assumptions=configured,
         current_market_cap=500,
+        current_price=5,
         current_revenue=50,
+        current_share_count=100,
         required_return=0.15,
         evidence=evidence(),
         asymmetry_type=AsymmetryType.BALANCED,
@@ -299,7 +306,9 @@ def test_price_only_case2_recalculation_preserves_assumption_version():
         identity=identity(),
         assumptions=configured,
         current_market_cap=600,
+        current_price=6,
         current_revenue=50,
+        current_share_count=100,
         required_return=0.15,
         evidence=evidence(),
         asymmetry_type=AsymmetryType.BALANCED,

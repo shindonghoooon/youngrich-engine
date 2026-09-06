@@ -383,6 +383,10 @@ def analysis_to_rows(
     supersedes_snapshot_id: str | None = None,
     revision_reason: str | None = None,
 ) -> AnalysisRows:
+    # Revalidate immutable payloads at the persistence boundary. ``model_copy`` is
+    # intentionally useful in tests and transformations, but does not rerun Pydantic
+    # validators; persisted historical records must never bypass the timing contract.
+    snapshot = AnalysisSnapshot.model_validate(snapshot.model_dump(mode="python"))
     root = AnalysisSnapshotRow(
         snapshot_id=snapshot.snapshot_id,
         instrument_id=instrument_id,

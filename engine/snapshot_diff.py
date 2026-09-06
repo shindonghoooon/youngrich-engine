@@ -7,6 +7,7 @@ from math import isclose
 from engine.models import Grade
 from engine.tracking_models import (
     AnalysisSnapshot,
+    BinaryEvidenceState,
     ChangeState,
     DirectionState,
     FlagDiff,
@@ -120,33 +121,110 @@ def _narrative_change(previous: NarrativeState | None, current: NarrativeState |
 def _price_changed(previous: AnalysisSnapshot, current: AnalysisSnapshot) -> bool:
     if previous.valuation is None or current.valuation is None:
         return False
-    pairs = (
-        (previous.valuation.market_price, current.valuation.market_price),
-        (previous.valuation.market_cap, current.valuation.market_cap),
-    )
-    return any(
-        left is not None and right is not None and not isclose(left, right, rel_tol=1e-12, abs_tol=1e-12)
-        for left, right in pairs
+    if (
+        previous.valuation.market_price is not None
+        and current.valuation.market_price is not None
+    ):
+        return not isclose(
+            previous.valuation.market_price,
+            current.valuation.market_price,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        )
+    return (
+        previous.valuation.market_cap is not None
+        and current.valuation.market_cap is not None
+        and not isclose(
+            previous.valuation.market_cap,
+            current.valuation.market_cap,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        )
     )
 
 
-def _valuation_change(previous: AnalysisSnapshot, current: AnalysisSnapshot) -> ValuationChangeType:
+def _valuation_change(
+    previous: AnalysisSnapshot,
+    current: AnalysisSnapshot,
+) -> ValuationChangeType:
+    if previous.valuation is None and current.valuation is None:
+        return (
+            ValuationChangeType.POLICY_CHANGE
+            if _investment_policy_changed(previous, current)
+            else ValuationChangeType.NONE
+        )
     if previous.valuation is None or current.valuation is None:
+        return ValuationChangeType.UNRESOLVED
+    previous_fingerprint = previous.valuation.fundamental_input_fingerprint
+    current_fingerprint = current.valuation.fundamental_input_fingerprint
+    if previous_fingerprint is None or current_fingerprint is None:
+        return ValuationChangeType.UNRESOLVED
+    changes = []
+    if previous.valuation.assumption_set != current.valuation.assumption_set:
+        changes.append(ValuationChangeType.ASSUMPTION_CHANGE)
+    if previous_fingerprint != current_fingerprint:
+        changes.append(ValuationChangeType.FUNDAMENTAL_CHANGE)
+    if _price_changed(previous, current):
+        changes.append(ValuationChangeType.PRICE_ONLY)
+    if _investment_policy_changed(previous, current):
+        changes.append(ValuationChangeType.POLICY_CHANGE)
+    if not changes:
         return ValuationChangeType.NONE
-    assumptions_changed = (
-        previous.valuation.assumption_set != current.valuation.assumption_set
-        or previous.valuation.fundamental_input_fingerprint
-        != current.valuation.fundamental_input_fingerprint
+    if len(changes) == 1:
+        return changes[0]
+    return ValuationChangeType.MIXED
+
+
+def _investment_policy_changed(
+    previous: AnalysisSnapshot,
+    current: AnalysisSnapshot,
+) -> bool:
+    previous_version = (
+        previous.investment_grade.model_version
+        if previous.investment_grade is not None
+        else None
     )
-    price_changed = _price_changed(previous, current)
-    output_changed = previous.valuation.output != current.valuation.output
-    if assumptions_changed and price_changed:
-        return ValuationChangeType.MIXED
-    if assumptions_changed:
-        return ValuationChangeType.ASSUMPTION_CHANGE
-    if price_changed and output_changed:
-        return ValuationChangeType.PRICE_ONLY
-    return ValuationChangeType.NONE
+    current_version = (
+        current.investment_grade.model_version
+        if current.investment_grade is not None
+        else None
+    )
+    return previous_version != current_version
+
+
+def _flag_value(snapshot: AnalysisSnapshot, flag: TrendFlag) -> bool | None:
+    current = snapshot.current_trend
+    if current is None:
+        return None
+    result = next((item for item in current.flag_results if item.flag == flag), None)
+    if result is not None:
+        return {
+            BinaryEvidenceState.YES: True,
+            BinaryEvidenceState.NO: False,
+            BinaryEvidenceState.UNKNOWN: None,
+        }[result.state]
+    if flag in current.flags:
+        return True
+    return None
+
+
+def _flag_change(
+    flag: TrendFlag,
+    previous: bool | None,
+    current: bool | None,
+) -> ChangeState:
+    if previous is None and current is not None:
+        return ChangeState.RESOLVED
+    if previous is not None and current is None:
+        return ChangeState.BECAME_UNRESOLVED
+    if previous == current:
+        return ChangeState.UNCHANGED
+    adverse = flag in {
+        TrendFlag.FUNDING_STRESS,
+        TrendFlag.COMMERCIAL_DETERIORATION,
+    }
+    improved = current is False if adverse else current is True
+    return ChangeState.IMPROVED if improved else ChangeState.DETERIORATED
 
 
 def build_snapshot_diff(previous: AnalysisSnapshot, current: AnalysisSnapshot) -> SnapshotDiff:
@@ -176,12 +254,23 @@ def build_snapshot_diff(previous: AnalysisSnapshot, current: AnalysisSnapshot) -
         for key in sorted(previous_axes.keys() | current_axes.keys())
     )
 
-    previous_flags = previous.current_trend.flags if previous.current_trend else frozenset()
-    current_flags = current.current_trend.flags if current.current_trend else frozenset()
     flag_changes = tuple(
-        FlagDiff(flag=flag, previous=flag in previous_flags, current=flag in current_flags, material=flag not in previous_flags and flag in current_flags)
+        FlagDiff(
+            flag=flag,
+            previous=_flag_value(previous, flag),
+            current=_flag_value(current, flag),
+            change=_flag_change(
+                flag,
+                _flag_value(previous, flag),
+                _flag_value(current, flag),
+            ),
+            material=(
+                _flag_value(previous, flag) is False
+                and _flag_value(current, flag) is True
+            ),
+        )
         for flag in TrendFlag
-        if (flag in previous_flags) != (flag in current_flags)
+        if _flag_value(previous, flag) != _flag_value(current, flag)
     )
     valuation_change = _valuation_change(previous, current)
     case_changed = previous.case != current.case
@@ -195,7 +284,9 @@ def build_snapshot_diff(previous: AnalysisSnapshot, current: AnalysisSnapshot) -
     current_thesis = current.thesis_status.status if current.thesis_status else None
     previous_breaker = bool(previous.thesis_status and previous.thesis_status.breaker_triggered) or bool(previous.investment_grade and previous.investment_grade.thesis_breaker_active)
     current_breaker = bool(current.thesis_status and current.thesis_status.breaker_triggered) or bool(current.investment_grade and current.investment_grade.thesis_breaker_active)
-    funding_changed = (TrendFlag.FUNDING_STRESS in previous_flags) != (TrendFlag.FUNDING_STRESS in current_flags)
+    previous_funding = _flag_value(previous, TrendFlag.FUNDING_STRESS)
+    current_funding = _flag_value(current, TrendFlag.FUNDING_STRESS)
+    funding_changed = previous_funding != current_funding
     grade_previous = previous.investment_grade.final_grade if previous.investment_grade else None
     grade_current = current.investment_grade.final_grade if current.investment_grade else None
     grade_changed = grade_previous != grade_current
@@ -218,7 +309,11 @@ def build_snapshot_diff(previous: AnalysisSnapshot, current: AnalysisSnapshot) -
             reasons.add(GradeChangeReason.PRICE)
         if valuation_change in {ValuationChangeType.ASSUMPTION_CHANGE, ValuationChangeType.MIXED}:
             reasons.add(GradeChangeReason.VALUATION_ASSUMPTION)
-        if any(item.change in {ChangeState.RESOLVED, ChangeState.BECAME_UNRESOLVED} for item in metric_changes + signal_changes + narrative_changes):
+        if valuation_change in {ValuationChangeType.FUNDAMENTAL_CHANGE, ValuationChangeType.MIXED}:
+            reasons.add(GradeChangeReason.VALUATION_INPUT)
+        if valuation_change in {ValuationChangeType.POLICY_CHANGE, ValuationChangeType.MIXED}:
+            reasons.add(GradeChangeReason.POLICY)
+        if any(item.change in {ChangeState.RESOLVED, ChangeState.BECAME_UNRESOLVED} for item in metric_changes + signal_changes + narrative_changes + flag_changes):
             reasons.add(GradeChangeReason.DATA_RESOLUTION)
         if len(reasons) > 1:
             reasons.add(GradeChangeReason.MULTIPLE)
@@ -250,6 +345,11 @@ def build_snapshot_diff(previous: AnalysisSnapshot, current: AnalysisSnapshot) -
         SnapshotChange(field="asymmetry_type", previous=previous.valuation.output.asymmetry_type.value if previous.valuation else None, current=current.valuation.output.asymmetry_type.value if current.valuation else None),
         SnapshotChange(field="valuation_confidence", previous=previous.valuation.output.confidence.value if previous.valuation else None, current=current.valuation.output.confidence.value if current.valuation else None),
         SnapshotChange(field="investment_grade", previous=grade_previous.value if grade_previous else None, current=grade_current.value if grade_current else None),
+        SnapshotChange(
+            field="investment_grade_policy",
+            previous=(previous.investment_grade.model_version if previous.investment_grade else None),
+            current=(current.investment_grade.model_version if current.investment_grade else None),
+        ),
         SnapshotChange(field="thesis_breaker", previous=previous_breaker, current=current_breaker),
     )
     previous_kpi_version = previous.narrative.kpi_set_version if previous.narrative else 1

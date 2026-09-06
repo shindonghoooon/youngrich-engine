@@ -102,7 +102,10 @@ class AlphaComparisonIssue(str, Enum):
 class ValuationChangeType(str, Enum):
     PRICE_ONLY = "price_only"
     ASSUMPTION_CHANGE = "assumption_change"
+    FUNDAMENTAL_CHANGE = "fundamental_change"
+    POLICY_CHANGE = "policy_change"
     MIXED = "mixed"
+    UNRESOLVED = "unresolved"
     NONE = "none"
 
 
@@ -113,6 +116,8 @@ class GradeChangeReason(str, Enum):
     NARRATIVE = "narrative"
     FUNDING = "funding"
     VALUATION_ASSUMPTION = "valuation_assumption"
+    VALUATION_INPUT = "valuation_input"
+    POLICY = "policy"
     THESIS_BREAKER = "thesis_breaker"
     CASE_MIGRATION = "case_migration"
     DATA_RESOLUTION = "data_resolution"
@@ -149,6 +154,12 @@ class TrendFlag(str, Enum):
     COMMERCIAL_INFLECTION = "commercial_inflection"
     FUNDING_STRESS = "funding_stress"
     COMMERCIAL_DETERIORATION = "commercial_deterioration"
+
+
+class BinaryEvidenceState(str, Enum):
+    YES = "yes"
+    NO = "no"
+    UNKNOWN = "unknown"
 
 
 class GrowthScope(str, Enum):
@@ -328,6 +339,11 @@ class CurrentTrendSignal(FrozenDomainModel):
     observation: str | None = None
 
 
+class TrendFlagResult(FrozenDomainModel):
+    flag: TrendFlag
+    state: BinaryEvidenceState
+
+
 class CurrentTrendSnapshot(TemporalSnapshot):
     snapshot_id: str
     ticker: str
@@ -336,6 +352,7 @@ class CurrentTrendSnapshot(TemporalSnapshot):
     signals: tuple[CurrentTrendSignal, ...]
     overall: DirectionState
     flags: frozenset[TrendFlag] = frozenset()
+    flag_results: tuple[TrendFlagResult, ...] = ()
     growth_scope: GrowthScope | None = None
     annual_quant_grade_reference: Grade | None = None
 
@@ -344,6 +361,17 @@ class CurrentTrendSnapshot(TemporalSnapshot):
         names = [signal.name for signal in self.signals]
         if len(names) != len(set(names)):
             raise ValueError("current signal names must be unique")
+        flag_names = [item.flag for item in self.flag_results]
+        if len(flag_names) != len(set(flag_names)):
+            raise ValueError("current flag results must be unique")
+        if self.flag_results:
+            active = frozenset(
+                item.flag
+                for item in self.flag_results
+                if item.state == BinaryEvidenceState.YES
+            )
+            if active != self.flags:
+                raise ValueError("flags must contain exactly the YES flag results")
         return self
 
 
@@ -497,6 +525,12 @@ class ExitMultipleAssumption(FrozenDomainModel):
     as_of: datetime
     rationale: str
 
+    @model_validator(mode="after")
+    def validate_evidence_timing(self) -> Self:
+        if self.as_of.tzinfo is None or self.as_of.utcoffset() is None:
+            raise ValueError("exit-multiple evidence as_of must be timezone-aware")
+        return self
+
 
 class ValuationAssumptionSet(FrozenDomainModel):
     assumption_set_id: str
@@ -551,6 +585,42 @@ class ValuationAssumptionSet(FrozenDomainModel):
         return self
 
 
+def validate_valuation_evidence_timing(
+    *,
+    evaluation_as_of: datetime,
+    assumption_set: ValuationAssumptionSet,
+    evidence_available_at: datetime | None,
+    evidence_retrieved_at: datetime | None = None,
+    require_evidence_available_at: bool = False,
+) -> None:
+    """Validate public-information timing without treating retrieval as publication.
+
+    ``evidence_retrieved_at`` is retained for provenance and only needs to be a valid
+    aware timestamp. A source may be retrieved after an historical analysis cutoff when
+    its independently recorded publication/availability time was already public.
+    """
+    if evaluation_as_of.tzinfo is None or evaluation_as_of.utcoffset() is None:
+        raise ValueError("valuation evaluation_as_of must be timezone-aware")
+    if evidence_available_at is None:
+        if require_evidence_available_at:
+            raise ValueError("valuation evidence available_at is required")
+    else:
+        if (
+            evidence_available_at.tzinfo is None
+            or evidence_available_at.utcoffset() is None
+        ):
+            raise ValueError("valuation evidence available_at must be timezone-aware")
+        if evidence_available_at > evaluation_as_of:
+            raise ValueError("valuation evidence is not available at valuation as_of")
+    if evidence_retrieved_at is not None and (
+        evidence_retrieved_at.tzinfo is None
+        or evidence_retrieved_at.utcoffset() is None
+    ):
+        raise ValueError("valuation evidence retrieved_at must be timezone-aware")
+    if any(item.as_of > evaluation_as_of for item in assumption_set.exit_multiples):
+        raise ValueError("exit-multiple evidence is not available at valuation as_of")
+
+
 class ValuationOutput(FrozenDomainModel):
     required_growth: float | None = None
     required_growth_range: AssumptionRange | None = None
@@ -582,10 +652,18 @@ class ValuationSnapshot(TemporalSnapshot):
     market_price: float | None = Field(default=None, gt=0)
     market_cap: float | None = Field(default=None, gt=0)
     fundamental_input_fingerprint: str | None = None
+    evidence_available_at: datetime | None = None
+    evidence_retrieved_at: datetime | None = None
     output: ValuationOutput
 
     @model_validator(mode="after")
     def validate_resolution(self) -> Self:
+        validate_valuation_evidence_timing(
+            evaluation_as_of=self.as_of,
+            assumption_set=self.assumption_set,
+            evidence_available_at=self.evidence_available_at,
+            evidence_retrieved_at=self.evidence_retrieved_at,
+        )
         if self.assumption_set.case == AnalysisCase.CASE_1_PROFITABLE_GROWTH:
             if self.market_price is None:
                 raise ValueError("Case 1 valuation requires market_price")
@@ -624,6 +702,8 @@ class ValuationSnapshot(TemporalSnapshot):
             market_price=market_price,
             market_cap=self.market_cap,
             fundamental_input_fingerprint=self.fundamental_input_fingerprint,
+            evidence_available_at=self.evidence_available_at,
+            evidence_retrieved_at=self.evidence_retrieved_at,
             output=output,
         )
 
@@ -694,8 +774,9 @@ class NarrativeDiff(FrozenDomainModel):
 
 class FlagDiff(FrozenDomainModel):
     flag: TrendFlag
-    previous: bool
-    current: bool
+    previous: bool | None
+    current: bool | None
+    change: ChangeState
     material: bool
 
 
@@ -1037,6 +1118,13 @@ class AnalysisSnapshot(TemporalSnapshot):
                 raise ValueError("component ticker must match AnalysisSnapshot ticker")
             if component.available_at > self.as_of:
                 raise ValueError("component available_at cannot be later than analysis as_of")
+        if self.valuation is not None:
+            validate_valuation_evidence_timing(
+                evaluation_as_of=self.as_of,
+                assumption_set=self.valuation.assumption_set,
+                evidence_available_at=self.valuation.evidence_available_at,
+                evidence_retrieved_at=self.valuation.evidence_retrieved_at,
+            )
         if self.quant.case != self.case:
             raise ValueError("QuantSnapshot case must match AnalysisSnapshot case")
         return self

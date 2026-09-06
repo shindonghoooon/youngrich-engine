@@ -492,8 +492,11 @@ def commercial_inflection_flag(
     revenue_momentum: DirectionState,
     gross_profit_momentum: DirectionState,
     thesis_kpi_momentum: DirectionState,
-) -> bool:
-    weak_or_unresolved = annual_quant_grade in {None, Grade.D, Grade.X}
+) -> bool | None:
+    states = (revenue_momentum, gross_profit_momentum, thesis_kpi_momentum)
+    if annual_quant_grade is None or DirectionState.UNRESOLVED in states:
+        return None
+    weak_or_unresolved = annual_quant_grade in {Grade.D, Grade.X}
     return weak_or_unresolved and all(
         signal == DirectionState.POSITIVE
         for signal in (
@@ -509,7 +512,10 @@ def commercial_deterioration_flag(
     revenue_momentum: DirectionState,
     gross_profit_momentum: DirectionState,
     thesis_kpi_momentum: DirectionState,
-) -> bool:
+) -> bool | None:
+    states = (revenue_momentum, gross_profit_momentum, thesis_kpi_momentum)
+    if annual_quant_grade is None or DirectionState.UNRESOLVED in states:
+        return None
     return annual_quant_grade in {Grade.A, Grade.B} and all(
         signal == DirectionState.NEGATIVE
         for signal in (

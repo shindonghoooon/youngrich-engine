@@ -7,6 +7,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from engine.annual_periods import validate_annual_periods
+
 
 UnitScale = Literal["units", "thousands", "millions"]
 
@@ -87,6 +89,7 @@ class FinancialHistory(BaseModel):
         years = [period.fiscal_year for period in self.periods]
         if len(years) != len(set(years)):
             raise ValueError("fiscal_year must be unique")
+        validate_annual_periods(self.periods)
         return self
 
 

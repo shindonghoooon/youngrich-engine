@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
+from engine.case1_snapshot import validate_case1_core_metrics
+from engine.case2_quant import validate_case2_quant_snapshot
 from engine.case2_policy import (
     CASE2_MANDATORY_METRICS,
     CASE2_SHAREHOLDER_OPTIONAL_METRICS,
@@ -40,14 +42,49 @@ from engine.tracking_models import (
     ResolutionState,
     TrendFlag,
     ValuationSnapshot,
+    validate_valuation_evidence_timing,
 )
 
 
 MODEL_VERSION = "investment-grade-v1.1-safety"
 MANDATORY_QUANT_UNRESOLVED = "MANDATORY_QUANT_UNRESOLVED"
+MANDATORY_QUANT_METRICS_MISSING = "MANDATORY_QUANT_METRICS_MISSING"
 MANDATORY_NARRATIVE_UNRESOLVED = "MANDATORY_NARRATIVE_UNRESOLVED"
 VALUATION_UNRESOLVED = "VALUATION_UNRESOLVED"
+VALUATION_EVIDENCE_UNRESOLVED = "VALUATION_EVIDENCE_UNRESOLVED"
 CURRENT_UNRESOLVED_OPTIONAL = "CURRENT_UNRESOLVED_OPTIONAL"
+
+_SUPPORTED_QUANT_MODELS = {
+    AnalysisCase.CASE_1_PROFITABLE_GROWTH: "case1-quant-v1-frozen",
+    AnalysisCase.CASE_2_EMERGING_ASYMMETRIC_GROWTH: "case2-quant-v1-frozen",
+}
+
+
+def _validate_quant_contract(
+    case: AnalysisCase,
+    quant: QuantSnapshot,
+) -> tuple[str, ...]:
+    """Return genuinely missing metrics; reject malformed policy inputs.
+
+    Missing mandatory evidence is a decision-safe ``U`` condition. A wrong Case,
+    unsupported policy version, changed weight, fake Core metric, supporting disguise,
+    or internally contradictory metric is invalid input and must not produce a grade.
+    """
+    if quant.case != case:
+        raise ValueError("QuantSnapshot case must match Investment Grade case")
+    expected_model = _SUPPORTED_QUANT_MODELS[case]
+    if quant.model_version != expected_model:
+        raise ValueError(
+            f"unsupported Quant model_version for {case.value}: {quant.model_version}"
+        )
+    if quant.state == ResolutionState.UNRESOLVED:
+        if quant.score is not None or quant.uncapped_grade is not None or quant.grade is not None:
+            raise ValueError("unresolved QuantSnapshot cannot carry score or grade")
+    elif quant.score is None or quant.grade is None:
+        raise ValueError("resolved QuantSnapshot requires score and grade")
+    if case == AnalysisCase.CASE_1_PROFITABLE_GROWTH:
+        return validate_case1_core_metrics(quant.metrics, allow_missing=True)
+    return validate_case2_quant_snapshot(quant, allow_missing=True)
 
 
 def _adjustment(
@@ -130,6 +167,15 @@ def build_investment_grade_v1_1(
     meaningful_optionality: bool = False,
     highly_stage_sensitive: bool = False,
 ) -> InvestmentGradeSnapshot:
+    missing_quant_metrics = _validate_quant_contract(case, quant)
+    if valuation.assumption_set.case != case:
+        raise ValueError("Valuation assumption Case must match Investment Grade case")
+    validate_valuation_evidence_timing(
+        evaluation_as_of=as_of,
+        assumption_set=valuation.assumption_set,
+        evidence_available_at=valuation.evidence_available_at,
+        evidence_retrieved_at=valuation.evidence_retrieved_at,
+    )
     broken_narrative = narrative_gate == NarrativeGate.BROKEN
     valuation_unresolved = (
         valuation.state == ResolutionState.UNRESOLVED
@@ -172,7 +218,13 @@ def build_investment_grade_v1_1(
             rationale="THESIS_BREAKER_OR_NARRATIVE_BROKEN",
         )
 
-    if not _mandatory_quant_resolved(case, quant):
+    if missing_quant_metrics or not _mandatory_quant_resolved(case, quant):
+        quant_reason = (
+            f"{MANDATORY_QUANT_METRICS_MISSING}:"
+            + ",".join(missing_quant_metrics)
+            if missing_quant_metrics
+            else MANDATORY_QUANT_UNRESOLVED
+        )
         return _snapshot(
             snapshot_id=snapshot_id,
             ticker=ticker,
@@ -186,11 +238,11 @@ def build_investment_grade_v1_1(
                     sequence=1,
                     trigger=InvestmentGradeTrigger.QUANT,
                     maximum_grade=InvestmentGrade.U,
-                    reason=MANDATORY_QUANT_UNRESOLVED,
+                    reason=quant_reason,
                     gate=True,
                 ),
             ),
-            rationale=MANDATORY_QUANT_UNRESOLVED,
+            rationale=quant_reason,
         )
 
     if (
@@ -215,6 +267,27 @@ def build_investment_grade_v1_1(
                 ),
             ),
             rationale=MANDATORY_NARRATIVE_UNRESOLVED,
+        )
+
+    if valuation.evidence_available_at is None:
+        return _snapshot(
+            snapshot_id=snapshot_id,
+            ticker=ticker,
+            period_end=period_end,
+            available_at=available_at,
+            as_of=as_of,
+            initial=InvestmentGrade.U,
+            final=InvestmentGrade.U,
+            adjustments=(
+                _adjustment(
+                    sequence=1,
+                    trigger=InvestmentGradeTrigger.VALUATION_CONFIDENCE,
+                    maximum_grade=InvestmentGrade.U,
+                    reason=VALUATION_EVIDENCE_UNRESOLVED,
+                    gate=True,
+                ),
+            ),
+            rationale=VALUATION_EVIDENCE_UNRESOLVED,
         )
 
     if valuation_unresolved:

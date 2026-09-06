@@ -4,6 +4,7 @@ from datetime import date, datetime, timezone
 
 import pytest
 
+from engine.case1_snapshot import WEIGHTS as CASE1_CORE_WEIGHTS
 from engine.case2_policy import CASE2_CORE_WEIGHTS
 from engine.investment_grade_engine import build_investment_grade
 from engine.investment_grade_engine_v1_1 import (
@@ -122,6 +123,8 @@ def _valuation(
             if resolved
             else ValuationOutput()
         ),
+        evidence_available_at=AS_OF,
+        evidence_retrieved_at=AS_OF,
         period_end=PERIOD_END,
         available_at=AS_OF,
         as_of=AS_OF,
@@ -135,9 +138,9 @@ def _quant(
     provisional_shareholder: bool = False,
 ) -> QuantSnapshot:
     if case == AnalysisCase.CASE_1_PROFITABLE_GROWTH:
-        metrics = (
+        metrics = tuple(
             MetricResult(
-                name="case1_core",
+                name=name,
                 state=(
                     ResolutionState.RESOLVED
                     if resolved
@@ -145,8 +148,9 @@ def _quant(
                 ),
                 value=1.0 if resolved else None,
                 grade=Grade.A if resolved else None,
-                weight=1.0,
-            ),
+                weight=weight,
+            )
+            for name, weight in CASE1_CORE_WEIGHTS.items()
         )
         coverage = 1.0 if resolved else 0.0
     else:
@@ -178,7 +182,11 @@ def _quant(
         snapshot_id="quant",
         ticker="SAFE",
         case=case,
-        model_version="frozen-quant",
+        model_version=(
+            "case1-quant-v1-frozen"
+            if case == AnalysisCase.CASE_1_PROFITABLE_GROWTH
+            else "case2-quant-v1-frozen"
+        ),
         metrics=metrics,
         state=ResolutionState.RESOLVED if resolved else ResolutionState.UNRESOLVED,
         score=4.0 if resolved else None,

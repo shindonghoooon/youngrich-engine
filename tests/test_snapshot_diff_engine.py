@@ -9,6 +9,7 @@ from engine.tracking_models import (
     AnalysisSnapshot,
     AssumptionRange,
     AsymmetryType,
+    BinaryEvidenceState,
     ChangeState,
     CurrentTrendSignal,
     CurrentTrendSnapshot,
@@ -30,6 +31,7 @@ from engine.tracking_models import (
     ThesisStatus,
     ThesisStatusSnapshot,
     TrendFlag,
+    TrendFlagResult,
     ValuationAssumptionSet,
     ValuationChangeType,
     ValuationConfidence,
@@ -79,16 +81,16 @@ def snapshot(
     investment_grade=InvestmentGrade.C,
     price=100,
     assumption_version=1,
-    fundamental_fingerprint=None,
+    fundamental_fingerprint="fundamentals-v1",
 ):
     as_of = BASE + timedelta(days=revision)
     period_end = date(2026, 6, 30)
     metric = MetricResult(name="dilution", state=metric_state, value=metric_value if metric_state == ResolutionState.RESOLVED else None, grade=metric_grade if metric_state == ResolutionState.RESOLVED else None, weight=1.0)
     quant = QuantSnapshot(snapshot_id=f"q-{revision}", ticker="TEST", case=case, model_version="frozen", period_end=period_end, available_at=BASE, as_of=as_of, metrics=(metric,), state=metric_state, score=2.0 if metric_state == ResolutionState.RESOLVED else None, grade=metric_grade if metric_state == ResolutionState.RESOLVED else None)
-    current = CurrentTrendSnapshot(snapshot_id=f"c-{revision}", ticker="TEST", case=case, model_version="frozen", period_end=period_end, available_at=BASE, as_of=as_of, signals=(CurrentTrendSignal(name="revenue_momentum", state=signal),), overall=overall, flags=flags)
+    current = CurrentTrendSnapshot(snapshot_id=f"c-{revision}", ticker="TEST", case=case, model_version="frozen", period_end=period_end, available_at=BASE, as_of=as_of, signals=(CurrentTrendSignal(name="revenue_momentum", state=signal),), overall=overall, flags=flags, flag_results=tuple(TrendFlagResult(flag=flag, state=BinaryEvidenceState.YES if flag in flags else BinaryEvidenceState.NO) for flag in TrendFlag))
     narrative = NarrativeSnapshot(snapshot_id=f"n-{revision}", ticker="TEST", case=case, model_version="frozen", thesis_id="thesis", thesis_version=1, kpi_set_version=1, kpi_definition_ids=("revenue", "adoption"), assessments=tuple(NarrativeAssessment(dimension=dimension, state=narrative_state) for dimension in ("differentiation", "defensibility", "adoption", "penetration_expansion", "durability", "failure_mode")), overall=narrative_state, period_end=period_end, available_at=BASE, as_of=as_of)
     thesis = ThesisStatusSnapshot(snapshot_id=f"t-{revision}", ticker="TEST", thesis_id="thesis", thesis_version=1, kpi_set_version=1, observation_ids=("one", "two"), status=thesis_status, breaker_triggered=thesis_breaker, period_end=period_end, available_at=BASE, as_of=as_of)
-    valuation = ValuationSnapshot(snapshot_id=f"v-{revision}", ticker="TEST", assumption_set=assumptions(assumption_version, case), state=ResolutionState.RESOLVED, market_price=price if case == AnalysisCase.CASE_1_PROFITABLE_GROWTH else None, market_cap=price * 100 if case == AnalysisCase.CASE_2_EMERGING_ASYMMETRIC_GROWTH else None, fundamental_input_fingerprint=fundamental_fingerprint, output=ValuationOutput(required_growth=0.30, expectation_gap=gap, asymmetry_type=asymmetry, confidence=confidence), period_end=period_end, available_at=as_of, as_of=as_of)
+    valuation = ValuationSnapshot(snapshot_id=f"v-{revision}", ticker="TEST", assumption_set=assumptions(assumption_version, case), state=ResolutionState.RESOLVED, market_price=price, market_cap=price * 100 if case == AnalysisCase.CASE_2_EMERGING_ASYMMETRIC_GROWTH else None, fundamental_input_fingerprint=fundamental_fingerprint, output=ValuationOutput(required_growth=0.30, expectation_gap=gap, asymmetry_type=asymmetry, confidence=confidence), period_end=period_end, available_at=as_of, as_of=as_of)
     grade = InvestmentGradeSnapshot(snapshot_id=f"ig-{revision}", ticker="TEST", model_version="frozen", initial_valuation_grade=investment_grade, final_grade=investment_grade, thesis_breaker_active=thesis_breaker, period_end=period_end, available_at=as_of, as_of=as_of)
     return AnalysisSnapshot(snapshot_id=f"a-{revision}", ticker="TEST", company_name="Test", case=case, case_definition_version="frozen", quant=quant, current_trend=current, narrative=narrative, narrative_gate=narrative_gate, thesis_status=thesis, valuation=valuation, investment_grade=grade, reference_price_snapshot_id=f"p-{revision}", period_end=period_end, available_at=as_of, as_of=as_of)
 
@@ -122,6 +124,55 @@ def test_current_narrative_and_flag_transitions_are_structured_and_material():
     assert all(item.change == ChangeState.IMPROVED for item in diff.narrative_changes)
     assert diff.flag_changes[0].material is True
     assert "commercial_inflection" in diff.material_changes
+
+
+def test_unknown_flag_transitions_are_not_described_as_boolean_flips():
+    previous = snapshot(1)
+    previous = previous.model_copy(
+        update={
+            "current_trend": previous.current_trend.model_copy(
+                update={"flags": frozenset(), "flag_results": ()}
+            )
+        }
+    )
+    yes = snapshot(2, flags=frozenset({TrendFlag.COMMERCIAL_INFLECTION}))
+    resolved = build_snapshot_diff(previous, yes)
+    change = next(
+        item
+        for item in resolved.flag_changes
+        if item.flag == TrendFlag.COMMERCIAL_INFLECTION
+    )
+    assert change.previous is None
+    assert change.current is True
+    assert change.change == ChangeState.RESOLVED
+    assert change.material is False
+
+    current_unknown = snapshot(3).model_copy(
+        update={
+            "current_trend": snapshot(3).current_trend.model_copy(
+                update={"flags": frozenset(), "flag_results": ()}
+            )
+        }
+    )
+    lost = build_snapshot_diff(yes, current_unknown)
+    change = next(
+        item
+        for item in lost.flag_changes
+        if item.flag == TrendFlag.COMMERCIAL_INFLECTION
+    )
+    assert change.previous is True
+    assert change.current is None
+    assert change.change == ChangeState.BECAME_UNRESOLVED
+    assert change.material is False
+
+
+def test_missing_historical_fingerprints_do_not_imply_price_only():
+    previous = snapshot(1, fundamental_fingerprint=None)
+    current = snapshot(2, price=80, fundamental_fingerprint=None)
+    assert (
+        build_snapshot_diff(previous, current).valuation_change_type
+        == ValuationChangeType.UNRESOLVED
+    )
 
 
 def test_price_only_upgrade_and_expensive_company_downgrade_attribution():
