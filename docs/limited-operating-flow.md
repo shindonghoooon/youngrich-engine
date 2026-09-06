@@ -147,3 +147,7 @@ This result closes the bounded credential/live-execution gate only. M12-B1 remai
 
 The independent audit response and reproduction matrix are recorded in
 [Limited Operating Independent Audit Response](validation/limited-operating-independent-audit-2026-09-06.md).
+
+The stored result can now be inspected without rerunning this flow through the local
+[read-only watchlist](read-only-watchlist.md). That view does not seed, refresh, revalue,
+or call Tiingo.
