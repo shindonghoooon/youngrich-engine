@@ -152,6 +152,16 @@ display semantics and layout only:
 - metric-semantic percent, percentage-point, multiple, and month formatting
 - one/two/three-column responsive card layout at the 768 and 1200 CSS-pixel boundaries
 - keyboard-accessible ticker selection, stored-file reload, and diagnostic expander
+- P0 decision-trace projection below every READY card and above detail prices: initial
+  valuation judgement, stored evidence axes, ordered active restrictions, and final grade
+- missing restrictions are not inferred as passed checks; raw reasons and inactive
+  adjustments remain in the detail expander, and no intermediate grade is calculated
+- STRL assumption absence, TEM initial B/final B with recorded confidence cap, and LPTH's
+  undefined valuation-combination policy are distinct display states
+
+The P0 follow-up passed 32 focused watchlist tests and 483 full offline tests, plus all
+five documented viewport widths and the 200% text-size check. Stored-source hashes
+remain unchanged. These checks supplement, rather than replace, the historical QA below.
 
 The saved STRL/TEM/LPTH SQLite and JSONL pair remains unchanged, no network or write path
 was added, and the screen still performs no seed, refresh, revalue, or investment

@@ -6,6 +6,7 @@ import argparse
 import html
 import os
 import sys
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from textwrap import dedent
@@ -37,7 +38,7 @@ ARTIFACT_ENV = "YOUNGRICH_WATCHLIST_ARTIFACT_PATH"
 REASON_LABELS = {
     "VALUATION_ASSUMPTIONS_UNAVAILABLE": "가치평가 가정 없음",
     "MANDATORY_NARRATIVE_UNRESOLVED": "사업 근거 부족",
-    "VALUATION_COMBINATION_UNRESOLVED": "평가 조건 확인 필요",
+    "VALUATION_COMBINATION_UNRESOLVED": "가치평가 조합의 등급 기준 미정의",
     "VALUATION_UNRESOLVED": "가치평가 자료 부족",
     "VALUATION_EVIDENCE_UNRESOLVED": "가치평가 근거 부족",
     "MANDATORY_QUANT_UNRESOLVED": "기업등급 근거 부족",
@@ -58,7 +59,7 @@ REASON_LABELS = {
 REASON_SENTENCES = {
     "VALUATION_ASSUMPTIONS_UNAVAILABLE": "가치평가 가정이 없습니다.",
     "MANDATORY_NARRATIVE_UNRESOLVED": "투자 판단에 필요한 사업 근거가 부족합니다.",
-    "VALUATION_COMBINATION_UNRESOLVED": "평가 조건 확인이 필요합니다.",
+    "VALUATION_COMBINATION_UNRESOLVED": "현재 가치평가 결과 조합에 승인된 투자등급 규칙이 없습니다.",
     "VALUATION_UNRESOLVED": "가치평가 결과를 확정할 자료가 부족합니다.",
     "VALUATION_EVIDENCE_UNRESOLVED": "가치평가 근거를 확인할 수 없습니다.",
     "MANDATORY_QUANT_UNRESOLVED": "기업등급의 필수 근거가 부족합니다.",
@@ -70,7 +71,7 @@ REASON_SENTENCES = {
 REASON_REQUIREMENTS = {
     "VALUATION_ASSUMPTIONS_UNAVAILABLE": "가치평가 가정",
     "MANDATORY_NARRATIVE_UNRESOLVED": "사업 근거",
-    "VALUATION_COMBINATION_UNRESOLVED": "평가 조건",
+    "VALUATION_COMBINATION_UNRESOLVED": "가치평가 조합의 등급 기준",
     "VALUATION_UNRESOLVED": "가치평가 자료",
     "VALUATION_EVIDENCE_UNRESOLVED": "가치평가 근거",
     "MANDATORY_QUANT_UNRESOLVED": "기업등급 근거",
@@ -180,6 +181,9 @@ CONFIDENCE_LABELS = {
 }
 
 ADJUSTMENT_TRIGGER_LABELS = {
+    "quant": "기업등급",
+    "narrative": "사업 근거",
+    "commercial_inflection": "상업화 전환",
     "valuation_confidence": "가치평가 신뢰도",
     "case1_quant": "기업등급",
     "case2_quant": "기업등급",
@@ -338,6 +342,10 @@ APP_CSS = """
   margin: .45rem 0 .8rem;
 }
 .yr-callout p { margin: .2rem 0; }
+.yr-trace { margin: .8rem 0; font-size: .9rem; }
+.yr-trace-row { padding: .3rem 0; display: flex; flex-wrap: wrap; gap: .25rem .6rem; }
+.yr-trace-row span { color: #4B5563; }
+.yr-trace-step { border-left: 3px solid #D1D5DB; padding: .5rem .85rem; margin: .25rem 0; overflow-wrap: anywhere; }
 @media (max-width: 1199px) {
   .yr-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .yr-judgement-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -551,7 +559,9 @@ def _active_adjustments(evaluation: OperatingEvaluation) -> list[str]:
         trigger = ADJUSTMENT_TRIGGER_LABELS.get(
             item.trigger.value, item.trigger.value
         )
-        if item.maximum_grade is not None:
+        if item.adjustment_type.value == "gate":
+            adjustments.append(_reason_label(item.reason))
+        elif item.maximum_grade is not None:
             adjustments.append(
                 f"{trigger}에 따른 등급 상한 "
                 f"{_investment_grade(item.maximum_grade)}"
@@ -559,6 +569,165 @@ def _active_adjustments(evaluation: OperatingEvaluation) -> list[str]:
         else:
             adjustments.append(f"{trigger}: {_reason_label(item.reason)}")
     return adjustments
+
+
+@dataclass(frozen=True)
+class DecisionTraceStep:
+    """Display-only projection; never applies a grade or cap."""
+
+    label: str
+    display_value: str
+    impact: str
+    explanation: str
+    source_code: tuple[str, ...] = ()
+
+
+def _decision_trace(item: WatchlistItem) -> tuple[DecisionTraceStep, ...]:
+    evaluation, analysis = item.evaluation, item.reference_analysis
+    assert evaluation is not None and analysis is not None
+    result = evaluation.investment_grade_result
+    valuation = evaluation.valuation_result
+    current = analysis.current_trend
+    steps = [
+        DecisionTraceStep(
+            "가치평가 초기 판단",
+            _investment_grade(result.initial_valuation_grade),
+            "UNRESOLVED" if result.initial_valuation_grade.value == "U" else "NOT_RECORDED",
+            "가치평가 계산 완료" if valuation is not None
+            and valuation.state == ResolutionState.RESOLVED else "가치평가 미산출",
+            (result.rationale,) if result.rationale else (),
+        )
+    ]
+
+    def axis(label, value, trigger, unresolved=False):
+        recorded = tuple(a for a in result.adjustments if a.trigger.value == trigger)
+        active = tuple(a for a in recorded if a.active)
+        impact = "UNRESOLVED" if unresolved else "NOT_RECORDED"
+        explanation = "추가 판정 제한 기록 없음"
+        if recorded and not active:
+            impact, explanation = "NO_CHANGE", "비활성 판정 제한 기록"
+        if active:
+            impact = "BLOCK" if any(a.adjustment_type.value == "gate" for a in active) else "CAP"
+            explanation = " · ".join(
+                _reason_label(a.reason) if a.adjustment_type.value == "gate"
+                else "등급 상한 " + _investment_grade(a.maximum_grade)
+                for a in active
+            )
+        steps.append(DecisionTraceStep(
+            label, value, impact, explanation, tuple(a.reason for a in recorded)
+        ))
+
+    quant = analysis.quant
+    axis(
+        "기업 분석",
+        ("완료 · 기업등급 " + _value(quant.grade))
+        if quant.state == ResolutionState.RESOLVED else "기업 분석 필수 근거 부족",
+        "quant", quant.state != ResolutionState.RESOLVED,
+    )
+    gate_labels = {
+        "confirmed": "확인됨", "qualified": "조건부 확인", "developing": "형성 중",
+        "weak": "약함", "broken": "훼손", "unresolved": "미확인",
+    }
+    gate = analysis.narrative_gate
+    narrative = analysis.narrative
+    narrative_value = (
+        "사업 근거 판정: " + gate_labels.get(gate.value, gate.value)
+        if gate is not None else "사업 근거 판정 기록 없음"
+    )
+    if narrative is not None:
+        narrative_value += " · 평가 " + NARRATIVE_STATE_LABELS.get(
+            narrative.overall.value, narrative.overall.value
+        )
+    axis("사업 근거", narrative_value, "narrative", gate is None or gate.value == "unresolved")
+    axis("최근 실적 추세", _direction_label(current.overall) if current else "미확인",
+         "current_trend", current is None or current.overall.value == "unresolved")
+    flags = {r.flag: r.state for r in current.flag_results} if current else {}
+    funding = flags.get(TrendFlag.FUNDING_STRESS, BinaryEvidenceState.UNKNOWN)
+    axis("자금 부담", BINARY_STATE_LABELS[funding], "funding_stress",
+         funding == BinaryEvidenceState.UNKNOWN)
+    confidence = valuation.output.confidence.value if valuation else "unresolved"
+    axis("가치평가 신뢰도", CONFIDENCE_LABELS[confidence], "valuation_confidence",
+         confidence == "unresolved")
+    axis("투자 논리 훼손", "있음" if result.thesis_breaker_active else "트리거 비활성",
+         "thesis_breaker")
+    steps.append(DecisionTraceStep(
+        "최종 투자등급", _investment_grade(result.final_grade),
+        "BLOCK" if result.final_grade.value == "U" else "NOT_RECORDED",
+        " · ".join(_reason_label(r) for r in evaluation.unresolved_reasons)
+        or "저장된 최종 판단",
+        evaluation.unresolved_reasons,
+    ))
+    return tuple(steps)
+
+
+def _trace_summary_html(item: WatchlistItem) -> str:
+    steps = _decision_trace(item)
+    evaluation = item.evaluation
+    assert evaluation is not None
+    if evaluation.valuation_result is None:
+        rows = [
+            ("기업 분석", steps[1].display_value),
+            ("가격", "평가 가격 확인됨" if item.price_snapshot else "가격 기록 없음"),
+            ("가치평가 초기 판단", steps[0].display_value + " · " + steps[0].explanation),
+        ]
+    else:
+        rows = [
+            ("가치평가 초기 판단", steps[0].display_value + " · " + steps[0].explanation),
+            ("기업 분석", steps[1].display_value),
+            ("최근 실적 추세", steps[3].display_value),
+        ]
+    rows.append(("최종 투자등급", steps[-1].display_value))
+    return '<div class="yr-trace"><strong>판단 근거</strong>' + "".join(
+        '<div class="yr-trace-row"><span>' + _escape(label)
+        + '</span><strong>' + _escape(value) + '</strong></div>'
+        for label, value in rows
+    ) + "</div>"
+
+
+def _render_decision_trace(item: WatchlistItem) -> None:
+    evaluation = item.evaluation
+    assert evaluation is not None
+    result = evaluation.investment_grade_result
+    st.subheader("투자등급 결정 경로")
+    for step in _decision_trace(item):
+        st.markdown(
+            '<div class="yr-trace-step"><strong>' + _escape(step.label)
+            + '</strong><div>' + _escape(step.display_value) + '</div><small>'
+            + _escape(step.explanation) + '</small></div>',
+            unsafe_allow_html=True,
+        )
+    st.write("저장된 판정 제한 적용 순서")
+    st.write("가치평가 초기 판단: " + _investment_grade(result.initial_valuation_grade))
+    active = [a for a in result.adjustments if a.active]
+    for adjustment in active:
+        trigger = ADJUSTMENT_TRIGGER_LABELS.get(adjustment.trigger.value, adjustment.trigger.value)
+        restriction = (
+            "판단 보류" if adjustment.maximum_grade is not None
+            and adjustment.maximum_grade.value == "U"
+            else "등급 상한 " + _investment_grade(adjustment.maximum_grade)
+            if adjustment.maximum_grade is not None else "판정 제한"
+        )
+        st.write(
+            f"↓ {adjustment.sequence}. {trigger} · {restriction} · "
+            + _reason_label(adjustment.reason)
+        )
+    if not active:
+        st.caption("활성 판정 제한 기록 없음")
+    st.write("최종 투자등급: " + _investment_grade(result.final_grade))
+    if result.initial_valuation_grade == result.final_grade:
+        st.caption("초기 판단과 최종 판단이 같습니다. 기록된 상한도 함께 표시합니다.")
+    elif not active:
+        st.caption("초기·최종 등급이 다르지만 변경 사유의 판정 제한 기록은 없습니다.")
+    st.caption("각 제한 적용 후 중간 등급은 저장되어 있지 않아 별도로 계산하지 않습니다.")
+    with st.expander("판정 근거 자세히"):
+        for step in _decision_trace(item):
+            st.write(f"{step.label}: {step.impact}")
+            for code in step.source_code:
+                st.code(code, language=None)
+        st.write(f"가정: {_assumption_label(evaluation)}")
+        st.write(f"정책: {evaluation.investment_grade_policy_version.value}")
+        st.write(f"모델: {result.model_version}")
+        st.json(result.model_dump(mode="json"), expanded=False)
 
 
 def _summary_card_html(item: WatchlistItem) -> str:
@@ -585,7 +754,7 @@ def _summary_card_html(item: WatchlistItem) -> str:
     if primary_reason is not None:
         reason = (
             '<div class="yr-reason">'
-            + _escape(_reason_sentence(primary_reason))
+            + _escape(_reason_label(primary_reason))
             + "</div>"
         )
     else:
@@ -614,6 +783,7 @@ def _summary_card_html(item: WatchlistItem) -> str:
           <span class="yr-grade">{_escape(grade)}</span>
         </div>
       </div>
+      {_trace_summary_html(item)}
       {reason}
       <div class="yr-price">
         <span class="yr-kicker">평가에 사용한 가격</span>
@@ -685,6 +855,15 @@ def _render_judgement(item: WatchlistItem) -> None:
             <span class="yr-fact-label">투자등급</span>
             <span class="yr-fact-value">{_escape(_investment_grade(evaluation.investment_grade_result.final_grade))}</span>
           </div>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
+    _render_decision_trace(item)
+    _render_reason_summary(evaluation)
+    st.markdown(
+        f"""
+        <section class="yr-judgement-grid" aria-label="평가 가격과 기준일">
           <div class="yr-fact">
             <span class="yr-fact-label">평가에 사용한 가격</span>
             <span class="yr-fact-value">{evaluation.price:,.2f} {_escape(evaluation.currency)}</span>
@@ -699,7 +878,6 @@ def _render_judgement(item: WatchlistItem) -> None:
         """,
         unsafe_allow_html=True,
     )
-    _render_reason_summary(evaluation)
     if not evaluation.unresolved_reasons:
         adjustments = _active_adjustments(evaluation)
         if adjustments:

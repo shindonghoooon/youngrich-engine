@@ -20,6 +20,7 @@ from app.read_only_watchlist import (
     ARTIFACT_ENV,
     DB_ENV,
     _case_label,
+    _decision_trace,
     _direction_label,
     _metric_label,
     _metric_rows,
@@ -49,6 +50,9 @@ from engine.research_data.tiingo import TiingoClient
 from engine.tracking_models import (
     InvestmentGrade,
     InvestmentGradePolicyVersion,
+    InvestmentGradeAdjustment,
+    InvestmentGradeTrigger,
+    AdjustmentType,
     ResolutionState,
 )
 
@@ -378,13 +382,13 @@ def test_strl_and_lpth_unresolved_reasons_are_plain_and_not_invented(
         "가치평가 가정"
     )
     assert _reason_sentence("VALUATION_COMBINATION_UNRESOLVED") == (
-        "평가 조건 확인이 필요합니다."
+        "현재 가치평가 결과 조합에 승인된 투자등급 규칙이 없습니다."
     )
     assert _reason_detail("VALUATION_COMBINATION_UNRESOLVED") == (
         "저장된 세부 원인 정보 없음"
     )
-    assert "가치평가 가정이 없습니다." in _summary_card_html(strl)
-    assert "평가 조건 확인이 필요합니다." in _summary_card_html(lpth)
+    assert "가치평가 가정 없음" in _summary_card_html(strl)
+    assert "가치평가 조합의 등급 기준 미정의" in _summary_card_html(lpth)
 
     app = _run_app(monkeypatch, db_path, artifacts)
     app.selectbox[0].select("LPTH").run()
@@ -680,6 +684,100 @@ def test_invalid_paths_are_not_exposed_as_investment_u(tmp_path: Path):
 def test_streamlit_usage_telemetry_is_disabled():
     config = (ROOT / ".streamlit" / "config.toml").read_text(encoding="utf-8")
     assert "gatherUsageStats = false" in config
+
+
+def test_ready_cards_project_initial_and_final_without_mutating_storage(stored_watchlist):
+    db, artifacts = stored_watchlist
+    snapshot = load_watchlist(db, artifacts)
+    before = snapshot.model_dump_json()
+    hashes = (_digest(db), _digest(artifacts))
+    for item in snapshot.items:
+        card = _summary_card_html(item)
+        trace = _decision_trace(item)
+        assert card.index("투자등급") < card.index("판단 근거")
+        assert "가치평가 초기 판단" in card and "최종 투자등급" in card
+        assert trace[0].display_value == (
+            "판단 보류" if item.evaluation.investment_grade_result.initial_valuation_grade == InvestmentGrade.U
+            else item.evaluation.investment_grade_result.initial_valuation_grade.value
+        )
+        for code in item.evaluation.unresolved_reasons:
+            assert code not in card
+    assert snapshot.model_dump_json() == before
+    assert hashes == (_digest(db), _digest(artifacts))
+
+
+def test_trace_distinguishes_missing_assumptions_from_undefined_policy(stored_watchlist):
+    snapshot = load_watchlist(*stored_watchlist)
+    strl, tem, lpth = (snapshot.item_for(t) for t in ("STRL", "TEM", "LPTH"))
+    strl_trace = _decision_trace(strl)
+    assert strl_trace[1].display_value == "완료 · 기업등급 A"
+    assert strl_trace[1].impact == "NOT_RECORDED"
+    assert strl_trace[0].explanation == "가치평가 미산출"
+    tem_trace = _decision_trace(tem)
+    assert tem_trace[0].display_value == tem_trace[-1].display_value == "B"
+    confidence = next(s for s in tem_trace if s.label == "가치평가 신뢰도")
+    assert confidence.impact == "CAP"
+    assert confidence.source_code == ("Valuation Confidence cap",)
+    lpth_trace = _decision_trace(lpth)
+    assert lpth_trace[0].explanation == "가치평가 계산 완료"
+    assert "등급 기준 미정의" in lpth_trace[-1].explanation
+    assert "자료 부족" not in lpth_trace[-1].explanation
+
+
+def test_app_renders_recorded_cap_order_without_recomputing_intermediate_grades(
+    stored_watchlist, monkeypatch
+):
+    # Synthetic presentation-only A -> C record; never edits the stored fixtures.
+    import engine.read_only_watchlist as loader
+    snapshot = load_watchlist(*stored_watchlist)
+    item = snapshot.item_for("TEM")
+    adjustments = (
+        InvestmentGradeAdjustment(
+            sequence=1, adjustment_type=AdjustmentType.CAP,
+            trigger=InvestmentGradeTrigger.QUANT, active=True,
+            maximum_grade=InvestmentGrade.B, reason="Case 2 Quant cap",
+        ),
+        InvestmentGradeAdjustment(
+            sequence=2, adjustment_type=AdjustmentType.CAP,
+            trigger=InvestmentGradeTrigger.CURRENT_TREND, active=True,
+            maximum_grade=InvestmentGrade.C, reason="Current Trend cap",
+        ),
+    )
+    grade = item.evaluation.investment_grade_result.model_copy(update={
+        "initial_valuation_grade": InvestmentGrade.A,
+        "final_grade": InvestmentGrade.C, "adjustments": adjustments,
+    })
+    changed = item.model_copy(update={"evaluation": item.evaluation.model_copy(
+        update={"investment_grade_result": grade}
+    )})
+    projected = snapshot.model_copy(update={
+        "items": tuple(changed if i.ticker == "TEM" else i for i in snapshot.items)
+    })
+    monkeypatch.setattr(loader, "load_watchlist", lambda *_args: projected)
+    app = _run_app(monkeypatch, *stored_watchlist)
+    app.selectbox[0].select("TEM").run()
+    text = _app_text(app)
+    assert "가치평가 초기 판단: A" in text
+    assert "최종 투자등급: C" in text
+    assert text.index("↓ 1. 기업등급") < text.index("↓ 2. 최근 실적 추세")
+    assert grade.adjustments == adjustments
+    assert _decision_trace(changed)[0].display_value == "A"
+    assert _decision_trace(changed)[-1].display_value == "C"
+
+
+def test_same_grade_trace_and_unknown_funding_do_not_imply_pass(
+    stored_watchlist, monkeypatch
+):
+    app = _run_app(monkeypatch, *stored_watchlist)
+    app.selectbox[0].select("TEM").run()
+    text = _app_text(app)
+    assert "가치평가 초기 판단: B" in text and "최종 투자등급: B" in text
+    assert "초기 판단과 최종 판단이 같습니다." in text
+    assert "추가 판정 제한 기록 없음" in text
+    strl = load_watchlist(*stored_watchlist).item_for("STRL")
+    funding = next(s for s in _decision_trace(strl) if s.label == "자금 부담")
+    assert funding.display_value == "미확인"
+    assert funding.impact == "UNRESOLVED"
 
 
 def test_responsive_grid_contract_covers_required_viewports():

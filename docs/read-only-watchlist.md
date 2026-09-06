@@ -143,6 +143,31 @@ The summary uses a CSS grid: one column below 768 CSS pixels, two columns from 7
 1199, and three from 1200 upward. Grade and reason text wraps instead of truncating.
 Declared normal-text color pairs meet a 4.5:1 contrast ratio.
 
+## Investment decision trace (P0)
+
+Every READY card shows four short **판단 근거** rows below the two grades. The detail
+view separates the recorded **가치평가 초기 판단**, business/Narrative/Current/funding/
+confidence/breaker evidence, **최종 투자등급**, and actual **판정 제한**. Price and
+financial-period information follows the decision path.
+
+The immutable display-only projection uses the saved evaluation and reference analysis.
+It never reapplies a policy, derives intermediate grades, or invents a cap from a Quant
+grade. Active adjustments retain their stored sequence; inactive records and raw codes
+remain available in **판정 근거 자세히**. An absent adjustment means **추가 판정 제한
+기록 없음**, not a passing check. Missing funding evidence remains UNKNOWN.
+
+The stored examples distinguish:
+
+- STRL: business analysis complete / company grade A; valuation assumptions absent.
+- TEM: initial B and final B; the recorded confidence cap B is not portrayed as the sole
+  cause of the grade.
+- LPTH: valuation calculated, but **가치평가 조합의 등급 기준 미정의**. The structured
+  unresolved reason does not authorize inventing a funding, dilution, or revenue cause.
+
+Initial and final grades stay visible even when equal. Labels stay short on cards;
+long explanations and original reason codes are available in detail. This is a
+presentation contract, not a new Investment Grade or persistence version.
+
 ## Verification
 
 ```text
@@ -167,6 +192,17 @@ UI/UX-pass validation on 2026-09-06:
 - existing live-validation files: stored STRL/TEM/LPTH values, detail, and reload PASS;
   source hashes unchanged
 - external provider/write/revalue/seed boundary: guarded by regression tests; PASS
+
+Decision-trace follow-up validation on 2026-09-06:
+
+- focused watchlist tests: 32 passed; full offline suite: 483 passed
+- initial/final equality and difference, stored cap order, missing-adjustment semantics,
+  STRL/TEM/LPTH reason distinctions, and source-model invariance: PASS
+- actual stored results in the local browser: decision summaries and LPTH detail PASS
+- 320/375/768/1024/1440 CSS-pixel checks: 1/1/2/2/3 columns; no horizontal or
+  grade/reason/decision-trace overflow; 200% text-size check at 375 pixels: PASS
+- existing SQLite/JSONL source hashes unchanged after browser reads; no API, seed,
+  revalue, calculation, or storage write added
 
 M12-B1 remains `BLOCKED`. Production EOD ingestion, an API, remote/mobile hosting, alerts,
 and write controls remain unimplemented.
