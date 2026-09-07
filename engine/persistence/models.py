@@ -70,6 +70,33 @@ class InstrumentRow(Base):
     valid_to: Mapped[date | None] = mapped_column(Date)
 
 
+class WatchlistMembershipRow(Base):
+    __tablename__ = "watchlist_memberships"
+    __table_args__ = (
+        UniqueConstraint("instrument_id", name="uq_watchlist_instrument"),
+        CheckConstraint("status IN ('ACTIVE', 'INACTIVE')", name="ck_watchlist_status"),
+    )
+    membership_id: Mapped[str] = mapped_column(String(120), primary_key=True)
+    company_id: Mapped[str] = mapped_column(ForeignKey("companies.company_id"), nullable=False)
+    instrument_id: Mapped[str] = mapped_column(ForeignKey("instruments.instrument_id"), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False)
+    tracking_started_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
+    tracking_stopped_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    reference_analysis_snapshot_id: Mapped[str | None] = mapped_column(ForeignKey("analysis_snapshots.snapshot_id"))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
+    registration_source: Mapped[str] = mapped_column(Text, nullable=False)
+
+
+class OnboardingRecordRow(Base):
+    """Immutable input receipt; no ticker-based lookup or generated assumptions."""
+    __tablename__ = "onboarding_records"
+    request_id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    instrument_id: Mapped[str] = mapped_column(ForeignKey("instruments.instrument_id"), nullable=False)
+    analysis_snapshot_id: Mapped[str | None] = mapped_column(ForeignKey("analysis_snapshots.snapshot_id"), unique=True)
+    input_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+
+
 class SourceReferenceRow(Base):
     __tablename__ = "source_references"
     source_reference_id: Mapped[str] = mapped_column(String(120), primary_key=True)
@@ -464,6 +491,7 @@ class MaterialEventRow(Base):
 
 
 _IMMUTABLE_ROWS = (
+    OnboardingRecordRow,
     SourceReferenceRow, AnalysisSnapshotRow, QuantSnapshotRow, MetricResultRow,
     CurrentTrendSnapshotRow, CurrentTrendSignalRow, NarrativeSnapshotRow,
     NarrativeAssessmentRow, ThesisStatusSnapshotRow, ValuationAssumptionRow,

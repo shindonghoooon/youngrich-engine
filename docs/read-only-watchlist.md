@@ -1,13 +1,30 @@
-# Read-only Watchlist — STRL / TEM / LPTH
+# Read-only Watchlist — Persistent ACTIVE Instruments
 
 Status: ACTIVE — DEMO/VALIDATION
 
 Last Updated: 2026-09-06
 
-This is a local, read-only Streamlit view over the bounded limited-operating result. It
+This is a local, read-only Streamlit view over ACTIVE instrument memberships. It
 does not fetch prices, run Case/Quant/Valuation/Investment Grade calculations, edit an
 assumption, or create a database. Nothing shown is realtime data or an investment
 recommendation.
+
+## Generic registry checkpoint
+
+The [onboarding/registry contract](specs/generic-stock-onboarding-v1.md) now governs
+product enumeration. Registering an Instrument changes the list without source edits.
+SQLite alone supports initial onboarding analyses; optional JSONL supplies existing
+limited-operating price evaluations. Both are read-only. Initial analysis and subsequent
+price-only evaluations keep separate labels and policy/assumption identity.
+
+Before using an old DB, explicitly migrate and register selected existing instrument
+IDs with `research.watchlist`; no migration/bootstrap runs in the UI. Legacy three-stock
+snapshots/evaluations are never recalculated for membership. Their historical QA below
+remains valid for the original implementation and files, not an automatic migration.
+With an explicit `--db` and no `--artifacts`, only DB analyses are read; no dummy JSONL
+is required. Registered instruments without analysis display `저장된 분석 없음`;
+analyses without price evaluations display `저장된 가격 평가 없음`. A real stored U
+continues to display `판단 보류` and saved reasons, without recalculation.
 
 ## Environment
 

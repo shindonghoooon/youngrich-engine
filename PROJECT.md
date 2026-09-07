@@ -58,6 +58,16 @@ label. Case 3–6 definitions are not implementation authorization.
 
 ## Current Milestone
 
+**CURRENT product: Generic Stock Onboarding v1 + Minimal Watchlist Registry**
+
+Validated input -> Company/Instrument -> existing Case 1/2 -> immutable analysis ->
+optional persistent ACTIVE membership -> read-only view. Analysis and registration
+are separate; U is a valid stored result. See the
+[onboarding contract](docs/specs/generic-stock-onboarding-v1.md).
+NEXT: Daily EOD Tracking; THEN Stock Agent; THEN Fundamental/Event Tracker;
+THEN Tracking KPI Automation; THEN Daily Brief/Alerts. Each needs separate approval.
+Agent orchestrates; deterministic engines own formulas and investment decisions.
+
 **M11 Historical Stress Calibration: COMPLETE**
 
 - 13 historical snapshots
@@ -66,7 +76,7 @@ label. Case 3–6 definitions are not implementation authorization.
 - useful for engine and diagnostic validation only
 - not an unbiased backtest and not evidence of proven alpha
 
-**Current milestone: M12-B Case 1/2 Quant Systematic Test — ACTIVE DATA PILOT**
+**Separate research: M12-B Case 1/2 Quant Systematic Test — DATA GATE**
 
 M12-A is COMPLETE / FROZEN and establishes a common, Case-agnostic calibration kernel
 over immutable Analysis and Performance snapshots. The 2026-09-04 M12-B0
@@ -81,15 +91,16 @@ Market/Delisting Source, Benchmark Policy, and Narrative Mode v1 are explicitly
 approved. The parallel future product track is:
 
 ```text
-EOD Market Data → API → Dashboard → PWA / Alerts
+Generic Onboarding / Registry → Daily EOD Tracking → Stock Agent
+  → Fundamental / Event Tracker → KPI Automation → Daily Brief / Alerts
 ```
 
 No production provider or product technology has been selected. Tiingo is approved only
 for the bounded research and limited operating pilot described above.
 
 The bounded [STRL/TEM/LPTH operating connection](docs/limited-operating-flow.md) is merged
-and validated. The parallel product track is now a local
-[read-only watchlist](docs/read-only-watchlist.md) over its stored outputs. Both remain
+and validated. The local [read-only watchlist](docs/read-only-watchlist.md) now enumerates
+persistent ACTIVE memberships. The historical pilot results remain
 `DEMO/VALIDATION`, do not unblock M12-B1, and do not authorize a production feed, remote
 deployment, or current investment recommendation. The operating flow's independent-audit
 response adds input and comparison safety contracts without changing frozen weights,
@@ -136,7 +147,8 @@ and historical discussion. Changes require an explicit design decision and versi
 | M12-B0 free-first data pilot | COMPLETE WITH FAIL ENTRY VERDICT |
 | M12-B0.1 Tiingo free-price pilot | COMPLETE / LIVE PRICE PATH PASS WITH GAPS |
 | STRL/TEM/LPTH limited operating connection | COMPLETE / DEMO-VALIDATION |
-| Local read-only watchlist | ACTIVE / DEMO-VALIDATION |
+| Local read-only watchlist | COMPLETE; ACTIVE membership-driven viewing |
+| Generic Stock Onboarding + Minimal Registry | CURRENT / IMPLEMENTED v1 |
 | Systematic unbiased historical backtest | NOT IMPLEMENTED |
 | Production EOD ingestion/API/dashboard/PWA | NOT IMPLEMENTED |
 | Case 3–6 engines | NOT IMPLEMENTED |
