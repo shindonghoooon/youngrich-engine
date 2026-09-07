@@ -148,7 +148,7 @@ def test_no_ticker_or_fixture_dependency_in_product_source():
 def test_registry_lifecycle_preserves_history(onboarding_db):
     session, _ = onboarding_db
     request = onboarding_input()
-    result = StockOnboardingService(session).analyze(request, track=True)
+    result = StockOnboardingService(session).analyze(request, track=True, tracking_at=request.created_at)
     repo = WatchlistRepository(session)
     before = repo.get(request.instrument.instrument_id)
     assert repo.add(before.instrument_id, at=request.created_at) == before
@@ -286,3 +286,54 @@ def test_price_identity_cannot_be_reused_for_same_ticker_other_instrument(onboar
         service.analyze(request.model_copy(update={"request_id": "other-listing-analysis",
             "instrument": other, "price_instrument_id": other.instrument_id}))
     assert session.get(InstrumentRow, other.instrument_id) is None
+
+
+def test_tracking_clock_and_reactivation_do_not_rewrite_analysis(onboarding_db):
+    session, _ = onboarding_db
+    request = onboarding_input()
+    service = StockOnboardingService(session)
+    start = request.created_at + timedelta(days=20)
+    first = service.analyze(request, track=True, tracking_at=start)
+    registry = WatchlistRepository(session)
+    membership = registry.get(request.instrument.instrument_id)
+    saved = AnalysisRepository(session).get_analysis_snapshot(first.analysis_snapshot_id)
+    receipt = session.get(OnboardingRecordRow, request.request_id).payload.copy()
+    assert membership.tracking_started_at == start
+    assert membership.created_at == start
+    assert saved.as_of == request.as_of
+    registry.deactivate(request.instrument.instrument_id, at=start + timedelta(days=1))
+    again = service.analyze(request, track=True, tracking_at=start + timedelta(days=2))
+    active = registry.get(request.instrument.instrument_id)
+    assert active.tracking_started_at == start + timedelta(days=2)
+    assert active.created_at == start
+    assert active.membership_id == membership.membership_id
+    assert active.tracking_stopped_at is None
+    assert again.analysis_snapshot_id == first.analysis_snapshot_id
+    assert AnalysisRepository(session).get_analysis_snapshot(first.analysis_snapshot_id) == saved
+    assert session.get(OnboardingRecordRow, request.request_id).payload == receipt
+
+
+def test_tracking_defaults_to_operational_clock(onboarding_db):
+    session, _ = onboarding_db
+    before = datetime.now(timezone.utc)
+    request = onboarding_input()
+    StockOnboardingService(session).analyze(request, track=True)
+    membership = WatchlistRepository(session).get(request.instrument.instrument_id)
+    assert before <= membership.tracking_started_at <= datetime.now(timezone.utc)
+
+
+def test_core_valuation_contract_remains_required():
+    import inspect
+    from typing import get_type_hints
+    from engine.investment_grade_engine_v1_1 import build_investment_grade_v1_1
+    from engine.tracking_models import ValuationSnapshot
+    assert get_type_hints(build_investment_grade_v1_1)["valuation"] is ValuationSnapshot
+    assert inspect.signature(build_investment_grade_v1_1).parameters["valuation"].default is inspect.Parameter.empty
+
+
+def test_absent_valuation_boundary_preserves_narrative_gate(onboarding_db):
+    session, _ = onboarding_db
+    request = onboarding_input().model_copy(update={"valuation": None, "narrative": None})
+    result = StockOnboardingService(session).analyze(request)
+    assert result.investment_grade.value == "U"
+    assert "MANDATORY_NARRATIVE_UNRESOLVED" in result.unresolved_reasons

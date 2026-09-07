@@ -4,7 +4,7 @@ No acquisition, ticker routing rules, scheduler or research fixture lookup lives
 """
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from enum import Enum
 from hashlib import sha256
 import json
@@ -19,7 +19,11 @@ from engine.case_backtest_adapters import Case1BacktestAdapter, Case1BacktestInp
 from engine.case2_current import Case2CurrentInput, build_case2_current_trend
 from engine.case2_policy import EligibilityState
 from engine.case2_quant import Case2QuantInput, build_case2_quant
-from engine.investment_grade_engine_v1_1 import build_investment_grade_v1_1
+from engine.investment_grade_engine_v1_1 import (
+    build_investment_grade_v1_1, _validate_quant_contract, _mandatory_quant_resolved,
+    _snapshot, _adjustment, MANDATORY_QUANT_METRICS_MISSING,
+    MANDATORY_QUANT_UNRESOLVED, MANDATORY_NARRATIVE_UNRESOLVED, VALUATION_UNRESOLVED,
+)
 from engine.models import CaseType
 from engine.narrative_engine import derive_gate_from_snapshot
 from engine.persistence.models import OnboardingRecordRow, PriceSnapshotRow, ThesisDefinitionRow, TrackingKPIDefinitionRow, ValuationAssumptionRow
@@ -28,7 +32,8 @@ from engine.persistence.schemas import Company, Instrument, SourceReference
 from engine.router import RouterInput, route_case
 from engine.tracking_models import (
     AnalysisCase, AnalysisSnapshot, AsymmetryType, CurrentTrendSnapshot,
-    FrozenDomainModel, InvestmentGrade, NarrativeSnapshot, PriceBasis, PriceSnapshot,
+    FrozenDomainModel, InvestmentGrade, InvestmentGradeTrigger, NarrativeGate,
+    NarrativeSnapshot, PriceBasis, PriceSnapshot,
     PriceType, ResolutionState, ValuationAssumptionSet, validate_valuation_evidence_timing,
 )
 from engine.valuation_engine import (
@@ -244,6 +249,38 @@ ADAPTERS = {
 }
 
 
+def _build_onboarding_investment_grade(*, valuation, **kwargs):
+    """Missing valuation is an onboarding boundary, not a relaxed frozen core API.
+
+    Reuse core Quant validation and snapshot constructors; retain the same ordered
+    evidence gates and terminal-breaker precedence without invented assumptions.
+    """
+    if valuation is not None:
+        return build_investment_grade_v1_1(valuation=valuation, **kwargs)
+    case, quant = kwargs["case"], kwargs["quant"]
+    missing = _validate_quant_contract(case, quant)
+    breaker = kwargs["thesis_breaker_triggered"]
+    gate = kwargs["narrative_gate"]
+    final = InvestmentGrade.U
+    if breaker or gate == NarrativeGate.BROKEN:
+        final = InvestmentGrade.X
+        trigger = InvestmentGradeTrigger.THESIS_BREAKER if breaker else InvestmentGradeTrigger.NARRATIVE
+        reason = "THESIS_BREAKER_OR_NARRATIVE_BROKEN"
+    elif missing or not _mandatory_quant_resolved(case, quant):
+        trigger = InvestmentGradeTrigger.QUANT
+        reason = (MANDATORY_QUANT_METRICS_MISSING + ":" + ",".join(missing)) if missing else MANDATORY_QUANT_UNRESOLVED
+    elif case == AnalysisCase.CASE_2_EMERGING_ASYMMETRIC_GROWTH and gate in {None, NarrativeGate.UNRESOLVED}:
+        trigger, reason = InvestmentGradeTrigger.NARRATIVE, MANDATORY_NARRATIVE_UNRESOLVED
+    else:
+        trigger, reason = InvestmentGradeTrigger.VALUATION_CONFIDENCE, VALUATION_UNRESOLVED
+    return _snapshot(
+        **{key: kwargs[key] for key in ("snapshot_id", "ticker", "period_end", "available_at", "as_of")},
+        initial=InvestmentGrade.U, final=final, thesis_breaker_active=breaker,
+        adjustments=(_adjustment(sequence=1, trigger=trigger, reason=reason, maximum_grade=final, gate=True),),
+        rationale=reason,
+    )
+
+
 def build_onboarding_analysis(inputs: OnboardingInput, adapter, snapshot_id: str):
     analysis = adapter.build(inputs, snapshot_id)
     narrative = inputs.narrative.model_copy(update={"snapshot_id": snapshot_id + "-narrative"}) if inputs.narrative else None
@@ -288,7 +325,7 @@ def build_onboarding_analysis(inputs: OnboardingInput, adapter, snapshot_id: str
             valuation = build_case2_valuation(**kwargs,
                 current_market_cap=price.price * v.current_shares / inputs.financial_unit_scale,
                 current_share_count=v.current_shares, current_revenue=inputs.case2.periods[-1].revenue)
-    ig = build_investment_grade_v1_1(
+    ig = _build_onboarding_investment_grade(
         snapshot_id=snapshot_id + "-ig", ticker=inputs.instrument.ticker,
         period_end=period_end, available_at=available_at, as_of=inputs.as_of, case=analysis.case,
         quant=analysis.quant, current_trend=analysis.current_trend, narrative_gate=gate,
@@ -309,14 +346,17 @@ class StockOnboardingService:
     def __init__(self, session: Session):
         self.session = session
 
-    def analyze(self, inputs: OnboardingInput, *, track: bool = False) -> OnboardingResult:
+    def analyze(self, inputs: OnboardingInput, *, track: bool = False,
+                tracking_at: datetime | None = None) -> OnboardingResult:
+        # Operational membership time is not historical analysis time or input identity.
+        tracking_at = tracking_at if tracking_at is not None else datetime.now(timezone.utc)
         if self.session.new or self.session.dirty or self.session.deleted:
             raise ValueError("onboarding requires a session without pending writes")
         # Existing repositories commit individually. Their commits join this outer
         # transaction without committing it: identities, history and receipt are atomic.
         try:
             with Session(bind=self.session.connection(), join_transaction_mode="rollback_only") as unit:
-                result = StockOnboardingService(unit)._analyze(inputs, track=track)
+                result = StockOnboardingService(unit)._analyze(inputs, track=track, tracking_at=tracking_at)
             self.session.commit()
             self.session.expire_all()
             return result
@@ -326,7 +366,7 @@ class StockOnboardingService:
             self.session.close()
             raise
 
-    def _analyze(self, inputs: OnboardingInput, *, track: bool) -> OnboardingResult:
+    def _analyze(self, inputs: OnboardingInput, *, track: bool, tracking_at: datetime) -> OnboardingResult:
         # Revalidate even model_copy / model_construct inputs; no trusted bypass.
         inputs = OnboardingInput.model_validate(inputs.model_dump(mode="json"))
         canonical = inputs.model_dump(mode="json")
@@ -397,7 +437,7 @@ class StockOnboardingService:
                 input_fingerprint=fingerprint, payload={"input": canonical, "result": result.model_dump(mode="json")}))
             self.session.commit()
         registry = WatchlistRepository(self.session)
-        membership = registry.add(inputs.instrument.instrument_id, at=inputs.created_at,
+        membership = registry.add(inputs.instrument.instrument_id, at=tracking_at,
             reference_analysis_snapshot_id=result.analysis_snapshot_id, registration_source="stock-onboarding-v1") if track else registry.get(inputs.instrument.instrument_id)
         return result.model_copy(update={"watchlist_status": membership.status if membership else None})
 

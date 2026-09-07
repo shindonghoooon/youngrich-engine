@@ -68,9 +68,16 @@ establishing an actual executable session; this service checks supplied contract
 Missing assumptions: `VALUATION_ASSUMPTIONS_UNAVAILABLE`; missing price:
 `PRICE_UNAVAILABLE`; unconfirmed split basis: `SHARE_SPLIT_BASIS_UNRESOLVED`.
 Analysis can succeed with unresolved Valuation and IG U, and U can be tracked.
-IG v1.1 accepts absent Valuation without fabricating an assumption set. Its existing
+The onboarding boundary handles absent Valuation without fabricating an assumption
+set. The frozen IG v1.1 core still requires a `ValuationSnapshot`. Existing
 mandatory-evidence gates and valid terminal-breaker X precedence are unchanged.
 Historical v1 replay remains untouched.
+
+Service membership timing clarification: `analyze(..., track=True, tracking_at=...)`
+uses an independent timezone-aware operational timestamp, defaulting to current UTC.
+It never reuses analysis `as_of` or `created_at`. `tracking_at` is outside the immutable
+input/fingerprint: reactivating the same request after deactivation updates membership
+start time while preserving its original creation time and historical analysis/receipt.
 
 ## Persistence and replay
 

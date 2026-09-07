@@ -162,25 +162,23 @@ def build_investment_grade_v1_1(
     quant: QuantSnapshot,
     current_trend: CurrentTrendSnapshot | None,
     narrative_gate: NarrativeGate | None,
-    valuation: ValuationSnapshot | None,
+    valuation: ValuationSnapshot,
     thesis_breaker_triggered: bool,
     meaningful_optionality: bool = False,
     highly_stage_sensitive: bool = False,
 ) -> InvestmentGradeSnapshot:
     missing_quant_metrics = _validate_quant_contract(case, quant)
-    if valuation is not None and valuation.assumption_set.case != case:
+    if valuation.assumption_set.case != case:
         raise ValueError("Valuation assumption Case must match Investment Grade case")
-    if valuation is not None:
-        validate_valuation_evidence_timing(
-            evaluation_as_of=as_of,
-            assumption_set=valuation.assumption_set,
-            evidence_available_at=valuation.evidence_available_at,
-            evidence_retrieved_at=valuation.evidence_retrieved_at,
-        )
+    validate_valuation_evidence_timing(
+        evaluation_as_of=as_of,
+        assumption_set=valuation.assumption_set,
+        evidence_available_at=valuation.evidence_available_at,
+        evidence_retrieved_at=valuation.evidence_retrieved_at,
+    )
     broken_narrative = narrative_gate == NarrativeGate.BROKEN
     valuation_unresolved = (
-        valuation is None
-        or valuation.state == ResolutionState.UNRESOLVED
+        valuation.state == ResolutionState.UNRESOLVED
         or valuation.output.expectation_gap.value == "unresolved"
         or valuation.output.confidence.value == "unresolved"
     )
@@ -198,14 +196,14 @@ def build_investment_grade_v1_1(
             valuation_confidence=valuation.output.confidence,
             meaningful_optionality=meaningful_optionality,
             highly_stage_sensitive=highly_stage_sensitive,
-        ) if valuation is not None else None
+        )
         return _snapshot(
             snapshot_id=snapshot_id,
             ticker=ticker,
             period_end=period_end,
             available_at=available_at,
             as_of=as_of,
-            initial=decision.grade if decision is not None else InvestmentGrade.U,
+            initial=decision.grade,
             final=InvestmentGrade.X,
             adjustments=(
                 _adjustment(
@@ -271,7 +269,7 @@ def build_investment_grade_v1_1(
             rationale=MANDATORY_NARRATIVE_UNRESOLVED,
         )
 
-    if valuation is not None and valuation.evidence_available_at is None:
+    if valuation.evidence_available_at is None:
         return _snapshot(
             snapshot_id=snapshot_id,
             ticker=ticker,

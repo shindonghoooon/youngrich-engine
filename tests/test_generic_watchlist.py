@@ -58,7 +58,7 @@ def test_existing_three_plus_ionq_and_deactivation(stored_watchlist):
     engine = create_sqlite_engine(path)
     with create_session_factory(engine)() as session:
         request = onboarding_input()
-        StockOnboardingService(session).analyze(request, track=True)
+        StockOnboardingService(session).analyze(request, track=True, tracking_at=request.created_at)
         four = load_watchlist(path, artifacts)
         assert {i.ticker for i in four.items} == {"STRL", "TEM", "LPTH", "IONQ"}
         for item in original.items:
